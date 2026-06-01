@@ -1,0 +1,434 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  PRO
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  INCOMPLETE
+  TRIALING
+  EXPIRED
+}
+
+enum AIGenerationType {
+  RESUME_GENERATION
+  RESUME_IMPROVEMENT
+  COVER_LETTER
+  LINKEDIN_OPTIMIZATION
+  ATS_SCAN
+  JOB_MATCH
+}
+
+enum AddonType {
+  AI_GENERATION
+  ATS_SCAN
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  role          UserRole @default(USER)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile       UserProfile?
+  subscription  UserSubscription?
+  resumes       Resume[]
+  coverLetters  CoverLetter[]
+  atsScores     ATSScore[]
+  jobMatches    JobMatch[]
+  linkedInProfiles LinkedInProfile[]
+  aiGenerations AIGeneration[]
+  addonPurchases AddonPurchase[]
+  payments      Payment[]
+  emailLogs     EmailLog[]
+  auditLogs     AuditLog[]
+  sessions      Session[]
+  blogPosts     BlogPost[]
+  uploadedFiles UploadedFile[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  phone           String?
+  location        String?
+  linkedinUrl     String?
+  jobTitle        String?
+  company         String?
+  bio             String?
+  website         String?
+  avatarUrl       String?
+  skills          String[] @default([])
+  experienceLevel String?  // entry, mid, senior, executive
+  resumeViews     Int      @default(0)
+  resumeDownloads Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String   @unique // FREE, PRO, PREMIUM
+  description String?
+  priceEgp    Float?
+  priceUsd    Float?
+  interval    String   @default("month") // month, year
+  annualDiscountPct Float @default(20)
+  features    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions UserSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model UserSubscription {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  planId             String
+  status             SubscriptionStatus @default(TRIALING)
+  stripeSubscriptionId String?          @unique
+  stripeCustomerId   String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialEnd           DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@map("user_subscriptions")
+}
+
+model AddonPack {
+  id       String    @id @default(cuid())
+  type     AddonType
+  credits  Int
+  priceEgp Float
+  priceUsd Float?
+  isActive Boolean   @default(true)
+  createdAt DateTime @default(now())
+
+  purchases AddonPurchase[]
+
+  @@map("addon_packs")
+}
+
+model AddonPurchase {
+  id              String   @id @default(cuid())
+  userId          String
+  packId          String
+  stripePaymentId String?
+  createdAt       DateTime @default(now())
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pack AddonPack @relation(fields: [packId], references: [id])
+
+  @@map("addon_purchases")
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  userId            String
+  stripePaymentId   String?  @unique
+  stripeInvoiceId   String?
+  amount            Float
+  currency          String   @default("egp")
+  status            String   // succeeded, failed, pending, refunded
+  description       String?
+  paymentMethod     String?
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model Resume {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String   @default("Untitled Resume")
+  sections   Json     @default("[]")
+  templateId String   @default("default")
+  isPublic   Boolean  @default(false)
+  publicSlug String?  @unique
+  atsScore   Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions     ResumeVersion[]
+  exports      ResumeExport[]
+  coverLetters CoverLetter[]
+  atsScores    ATSScore[]
+  jobMatches   JobMatch[]
+  uploadedFiles UploadedFile[]
+
+  @@index([userId])
+  @@index([publicSlug])
+  @@map("resumes")
+}
+
+model ResumeVersion {
+  id        String   @id @default(cuid())
+  resumeId  String
+  sections  Json
+  versionNumber Int  @default(1)
+  createdAt DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@map("resume_versions")
+}
+
+model ResumeExport {
+  id        String   @id @default(cuid())
+  resumeId  String
+  format    String   // pdf, docx, txt
+  url       String
+  createdAt DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@map("resume_exports")
+}
+
+model UploadedFile {
+  id           String   @id @default(cuid())
+  userId       String
+  resumeId     String?
+  originalName String
+  storagePath  String
+  mimeType     String
+  sizeBytes    Int
+  status       String   @default("uploaded") // uploaded, processing, processed, failed
+  ocrText      String?
+  parsedData   Json?
+  createdAt    DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume Resume? @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  @@map("uploaded_files")
+}
+
+model CoverLetter {
+  id              String   @id @default(cuid())
+  userId          String
+  resumeId        String?
+  title           String   @default("Untitled Cover Letter")
+  content         String
+  tone            String   @default("professional")
+  jobDescription  String?
+  companyName     String?
+  recipientName   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume Resume? @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("cover_letters")
+}
+
+model LinkedInProfile {
+  id          String   @id @default(cuid())
+  userId      String
+  analysis    Json     @default("{}")
+  suggestions Json     @default("{}")
+  headline    String?
+  about       String?
+  score       Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("linkedin_profiles")
+}
+
+model ATSScore {
+  id             String   @id @default(cuid())
+  resumeId       String
+  userId         String
+  jobDescription String?
+  score          Float
+  breakdown      Json     @default("{}")
+  recommendations Json    @default("[]")
+  createdAt      DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@index([userId])
+  @@map("ats_scores")
+}
+
+model JobMatch {
+  id              String   @id @default(cuid())
+  resumeId        String
+  userId          String
+  jobDescription  String
+  matchPercentage Float
+  gaps            Json     @default("[]")
+  recommendations Json     @default("[]")
+  createdAt       DateTime @default(now())
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@index([userId])
+  @@map("job_matches")
+}
+
+model AIGeneration {
+  id             String           @id @default(cuid())
+  userId         String
+  type           AIGenerationType
+  promptTokens   Int              @default(0)
+  completionTokens Int            @default(0)
+  model          String           @default("gpt-4o")
+  costEgp        Float?
+  status         String           @default("completed") // processing, completed, failed
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_generations")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model FeatureFlag {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  enabled   Boolean  @default(false)
+  percentage Int?    // 0-100 rollout percentage
+  userIds   String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  slug      String   @unique
+  excerpt   String?
+  content   String
+  coverImage String?
+  category  String?
+  tags      String[] @default([])
+  published Boolean  @default(false)
+  featured  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([slug])
+  @@index([published])
+  @@map("blog_posts")
+}
+
+model LegalPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@map("legal_pages")
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // welcome, verification, reset, subscription, payment, marketing, etc.
+  recipient String
+  subject   String
+  sentAt    DateTime @default(now())
+  status    String   // sent, delivered, bounced, failed
+  error     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@map("email_logs")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   Json     @default("{}")
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AppSettings {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}

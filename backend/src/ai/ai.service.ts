@@ -1,0 +1,282 @@
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import OpenAI from 'openai';
+import { PrismaService } from '../common/prisma.service';
+
+@Injectable()
+export class AiService {
+  private readonly logger = new Logger(AiService.name);
+  private openai: OpenAI;
+
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
+    this.openai = new OpenAI({
+      apiKey: this.configService.get<string>('OPENAI_API_KEY')!,
+    });
+  }
+
+  async generateResume(userId: string, data: { sections: any[]; tone?: string; keywords?: string; focusArea?: string }) {
+    await this.checkUsageLimit(userId, 'RESUME_GENERATION');
+
+    try {
+      const systemPrompt = this.buildResumeSystemPrompt(data.tone, data.keywords, data.focusArea);
+      const userPrompt = this.buildResumeUserPrompt(data.sections);
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const content = completion.choices[0].message.content;
+      const result = JSON.parse(content || '{}');
+
+      await this.recordUsage(userId, 'RESUME_GENERATION', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'RESUME_GENERATION', error.message);
+      throw new BadRequestException(error.message || 'AI generation failed');
+    }
+  }
+
+  async improveResume(userId: string, data: { sections: any[]; instructions: string }) {
+    await this.checkUsageLimit(userId, 'RESUME_IMPROVEMENT');
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: "You are an expert resume writer. Improve the resume sections based on the user's instructions. Return JSON with improved sections." },
+          { role: 'user', content: JSON.stringify({ sections: data.sections, instructions: data.instructions }) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'RESUME_IMPROVEMENT', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'RESUME_IMPROVEMENT', error.message);
+      throw new BadRequestException(error.message || 'AI generation failed');
+    }
+  }
+
+  async generateCoverLetter(userId: string, data: { resume: any; jobDescription: string; tone?: string; companyName?: string }) {
+    await this.checkUsageLimit(userId, 'COVER_LETTER');
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: this.buildCoverLetterSystemPrompt(data.tone) },
+          { role: 'user', content: JSON.stringify({
+            resume: data.resume,
+            jobDescription: data.jobDescription,
+            companyName: data.companyName,
+          })},
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const content = completion.choices[0].message.content || '';
+
+      await this.recordUsage(userId, 'COVER_LETTER', completion.usage);
+
+      return { content };
+    } catch (error: any) {
+      await this.recordFailure(userId, 'COVER_LETTER', error.message);
+      throw new BadRequestException(error.message || 'AI generation failed');
+    }
+  }
+
+  async analyzeATS(userId: string, data: { resume: any; jobDescription: string }) {
+    await this.checkUsageLimit(userId, 'ATS_SCAN');
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an ATS (Applicant Tracking System) expert. Analyze the resume against the job description.
+            Return a JSON with:
+            - score: number (0-100)
+            - breakdown: { keywords: number, format: number, sections: number, content: number, overall: number }
+            - recommendations: string[]
+            - missingKeywords: string[]
+            - strongPoints: string[]`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'ATS_SCAN', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'ATS_SCAN', error.message);
+      throw new BadRequestException(error.message || 'AI analysis failed');
+    }
+  }
+
+  async analyzeJobMatch(userId: string, data: { resume: any; jobDescription: string }) {
+    await this.checkUsageLimit(userId, 'JOB_MATCH');
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a career match expert. Analyze how well the resume matches the job description.
+            Return JSON with:
+            - matchPercentage: number
+            - gaps: string[]
+            - recommendations: string[]
+            - matchedSkills: string[]
+            - missingSkills: string[]`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'JOB_MATCH', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'JOB_MATCH', error.message);
+      throw new BadRequestException(error.message || 'AI analysis failed');
+    }
+  }
+
+  async optimizeLinkedIn(userId: string, data: { profile: any }) {
+    await this.checkUsageLimit(userId, 'LINKEDIN_OPTIMIZATION');
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a LinkedIn optimization expert. Analyze the LinkedIn profile and provide optimization suggestions.
+            Return JSON with:
+            - headline: string (optimized)
+            - about: string (optimized summary)
+            - experience: array of optimized entries
+            - suggestions: string[]
+            - keywords: string[]
+            - score: number`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'LINKEDIN_OPTIMIZATION', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'LINKEDIN_OPTIMIZATION', error.message);
+      throw new BadRequestException(error.message || 'AI optimization failed');
+    }
+  }
+
+  private async checkUsageLimit(userId: string, type: string) {
+    const subscription = await this.prisma.userSubscription.findUnique({
+      where: { userId },
+      include: { plan: true },
+    });
+
+    const planName = subscription?.plan?.name || 'FREE';
+    if (planName === 'FREE') {
+      throw new BadRequestException('AI features are not available on the Free plan. Upgrade to Pro.');
+    }
+
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    currentMonth.setHours(0, 0, 0, 0);
+
+    const usageCount = await this.prisma.aIGeneration.count({
+      where: { userId, type: type as any, createdAt: { gte: currentMonth } },
+    });
+
+    const limits: Record<string, number> = { RESUME_GENERATION: 10, RESUME_IMPROVEMENT: 10, COVER_LETTER: 10, ATS_SCAN: 5, JOB_MATCH: 5, LINKEDIN_OPTIMIZATION: 5 };
+    const limit = planName === 'PREMIUM' ? Infinity : (limits[type] || 10);
+
+    if (usageCount >= limit) {
+      throw new BadRequestException(`Monthly limit reached for ${type}. Upgrade or purchase add-on pack.`);
+    }
+  }
+
+  private async recordFailure(userId: string, type: string, errorMessage: string) {
+    try {
+      await this.prisma.aIGeneration.create({
+        data: {
+          userId,
+          type: type as any,
+          promptTokens: 0,
+          completionTokens: 0,
+          model: 'gpt-4o',
+          costEgp: 0,
+          status: 'failed',
+          errorMessage,
+        },
+      });
+    } catch (dbError) {
+      this.logger.error(`Failed to record AI usage failure: ${dbError}`);
+    }
+  }
+
+  private async recordUsage(userId: string, type: string, usage: any) {
+    const tokens = usage?.total_tokens || 0;
+    const costPerToken = 0.00001; // Approximate GPT-4o cost per token in USD
+    const costUsd = tokens * costPerToken;
+
+    await this.prisma.aIGeneration.create({
+      data: {
+        userId,
+        type: type as any,
+        promptTokens: usage?.prompt_tokens || 0,
+        completionTokens: usage?.completion_tokens || 0,
+        model: 'gpt-4o',
+        costEgp: costUsd * 48, // Approximate EGP conversion
+        status: 'completed',
+      },
+    });
+  }
+
+  private buildResumeSystemPrompt(tone?: string, keywords?: string, focusArea?: string) {
+    return `You are an expert resume writer and career coach. Create professional, ATS-optimized resume content.
+    Tone: ${tone || 'professional'}
+    ${keywords ? `Target keywords: ${keywords}` : ''}
+    ${focusArea ? `Focus area: ${focusArea}` : ''}
+    Return JSON with improved sections maintaining the same structure but with enhanced content.`;
+  }
+
+  private buildResumeUserPrompt(sections: any[]) {
+    return JSON.stringify({ sections, instructions: 'Improve the resume content to be more impactful, achievement-oriented, and ATS-friendly. Use strong action verbs and quantify achievements where possible.' });
+  }
+
+  private buildCoverLetterSystemPrompt(tone?: string) {
+    return `You are an expert cover letter writer. Create a compelling, professional cover letter.
+    Tone: ${tone || 'professional'}
+    Format: Include date, salutation, body paragraphs, and closing.
+    Keep it concise (3-4 paragraphs). Tailor it to the job description.`;
+  }
+}
