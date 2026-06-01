@@ -1,9 +1,7 @@
 {
-  "name": "lithy-ai-frontend",
   "framework": "nextjs",
   "buildCommand": "npm run build -w frontend",
   "outputDirectory": "frontend/.next",
   "installCommand": "npm install",
-  "rootDirectory": "frontend",
-  "crons": []
+  "ignoreCommand": "npx -w frontend next-ignore"
 }
