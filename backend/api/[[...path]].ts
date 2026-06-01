@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../../src/app.module';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe, Logger } from '@nestjs/common';
@@ -9,6 +8,7 @@ let cachedServer: any;
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  const { AppModule } = require('../dist/src/app.module');
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
 
