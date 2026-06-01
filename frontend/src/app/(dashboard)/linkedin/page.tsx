@@ -38,7 +38,7 @@ export default function LinkedInOptimizerPage() {
   };
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container py-8 space-y-8 animate-fade-in">
       <div className="flex items-center gap-3">
         <Linkedin className="h-8 w-8 text-blue-600" />
         <div>
@@ -48,7 +48,7 @@ export default function LinkedInOptimizerPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="card-hover">
           <CardHeader>
             <CardTitle className="text-lg">Your Current Profile</CardTitle>
             <CardDescription>Enter your current LinkedIn headline and about section</CardDescription>
@@ -71,7 +71,7 @@ export default function LinkedInOptimizerPage() {
         <div className="space-y-6">
           {result && (
             <>
-              <Card>
+              <Card className="card-hover animate-slide-up">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Optimized Headline</span>
@@ -86,7 +86,7 @@ export default function LinkedInOptimizerPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="card-hover animate-slide-up">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Optimized About Section</span>
@@ -101,7 +101,7 @@ export default function LinkedInOptimizerPage() {
               </Card>
 
               {result.suggestions?.length > 0 && (
-                <Card>
+                <Card className="card-hover animate-slide-up">
                   <CardHeader>
                     <CardTitle>Suggestions</CardTitle>
                   </CardHeader>

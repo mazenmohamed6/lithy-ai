@@ -101,9 +101,14 @@ export default function ResumeEditorPage() {
   if (previewMode) {
     return (
       <div className="container py-8">
-        <Button variant="ghost" onClick={() => setPreviewMode(false)} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" onClick={() => setPreviewMode(false)}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Download className="mr-2 h-4 w-4" /> Save as PDF (Ctrl+P)
+          </Button>
+        </div>
         <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
           <ResumePreview sections={sections} title={title} />
         </Card>
@@ -165,6 +170,11 @@ export default function ResumeEditorPage() {
               <Button variant="outline" size="sm" onClick={() => setPreviewMode(true)}>
                 <Eye className="mr-2 h-4 w-4" /> Preview
               </Button>
+              {!isNew && (
+                <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download`)}>
+                  <Download className="mr-2 h-4 w-4" /> Download
+                </Button>
+              )}
               <Button size="sm" onClick={saveResume} disabled={isSaving}>
                 <Save className="mr-2 h-4 w-4" /> {isSaving ? "Saving..." : "Save"}
               </Button>

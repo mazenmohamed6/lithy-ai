@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
 import { APP_NAME } from "@/lib/constants";
+import { api } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 export default function SignupPage() {
@@ -16,7 +17,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get("plan");
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,21 +30,21 @@ export default function SignupPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-
-    if (error) {
-      toast.error(error.message);
+    try {
+      const { message } = await api.post("/auth/signup", {
+        email,
+        password,
+        metadata: { selectedPlan: planParam || "free" },
+      });
+      toast.success(message || "Account created successfully! Welcome aboard.");
+      router.push("/dashboard");
+    } catch (err: any) {
+      toast.error(err.message || "Signup failed");
       setIsLoading(false);
-      return;
     }
-
-    toast.success("Check your email to verify your account!");
-    router.push("/verify-email");
   };
+
+  const supabase = createClient();
 
   const handleOAuthSignup = async (provider: "google" | "linkedin" | "github" | "apple") => {
     setIsLoading(true);

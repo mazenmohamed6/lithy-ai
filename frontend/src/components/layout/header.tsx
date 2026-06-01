@@ -22,14 +22,23 @@ export function Header() {
           <Link href={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
             <span className="text-xl font-bold">{APP_NAME}</span>
           </Link>
-          {!isDashboard && (
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground">Features</Link>
-              <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground">Pricing</Link>
-              <Link href="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground">Blog</Link>
-              <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground">About</Link>
-            </nav>
-          )}
+          <nav className="hidden md:flex items-center gap-6">
+            {isDashboard ? (
+              <>
+                <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">Dashboard</Link>
+                <Link href="/ats-scanner" className="text-sm font-medium text-muted-foreground hover:text-foreground">ATS Scanner</Link>
+                <Link href="/cover-letters" className="text-sm font-medium text-muted-foreground hover:text-foreground">Cover Letters</Link>
+                <Link href="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground">Blog</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground">Features</Link>
+                <Link href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground">Pricing</Link>
+                <Link href="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground">Blog</Link>
+                <Link href="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground">About</Link>
+              </>
+            )}
+          </nav>
         </div>
         <div className="flex items-center gap-4">
           {user ? (

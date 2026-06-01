@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function AdminContentPage() {
   const [posts, setPosts] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get("/admin/content").then(setPosts).catch(console.error);
+    api.get("/admin/content").then(setPosts).catch(() => toast.error("Failed to load content"));
   }, []);
 
   return (

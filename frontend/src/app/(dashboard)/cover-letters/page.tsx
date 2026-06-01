@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,10 @@ import { api } from "@/lib/api";
 import { AI_TONES } from "@/lib/constants";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { ResumeUpload } from "@/components/resume-upload";
 
 export default function CoverLettersPage() {
+  const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [tone, setTone] = useState("professional");
   const [companyName, setCompanyName] = useState("");
@@ -25,7 +27,7 @@ export default function CoverLettersPage() {
     setIsGenerating(true);
     try {
       const res = await api.post("/ai/cover-letter", {
-        resume: { content: "Use the user's latest resume" },
+        resume: { content: resumeText || "Use the user's latest resume" },
         jobDescription,
         tone,
         companyName,
@@ -46,14 +48,14 @@ export default function CoverLettersPage() {
   };
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container py-8 space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold">Cover Letter Generator</h1>
         <p className="text-muted-foreground">Create professional cover letters tailored to any job.</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="card-hover">
           <CardHeader>
             <CardTitle className="text-lg">Job Details</CardTitle>
             <CardDescription>Enter the job description and customize the tone</CardDescription>
@@ -70,6 +72,10 @@ export default function CoverLettersPage() {
               </select>
             </div>
             <div>
+              <label className="text-sm font-medium">Your Resume (optional)</label>
+              <ResumeUpload onResumeText={setResumeText} initialText={resumeText} />
+            </div>
+            <div>
               <label className="text-sm font-medium">Job Description</label>
               <textarea className="w-full min-h-[250px] mt-1 rounded-md border border-input bg-transparent p-3 text-sm" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} placeholder="Paste the job description here..." />
             </div>
@@ -79,7 +85,7 @@ export default function CoverLettersPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Generated Cover Letter</span>

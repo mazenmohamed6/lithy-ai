@@ -71,4 +71,19 @@ export class AuthController {
   async deleteAccount(@CurrentUser() user: any) {
     return this.authService.deleteAccount(user.id);
   }
+
+  @Post('delete-account')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete user account (POST alias)' })
+  async deleteAccountPost(@CurrentUser() user: any) {
+    return this.authService.deleteAccount(user.id);
+  }
+
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sync OAuth user to local database' })
+  async syncUser(@Body() body: { userId: string; email: string }) {
+    return this.authService.syncUser(body.userId, body.email);
+  }
 }

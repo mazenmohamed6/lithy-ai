@@ -37,7 +37,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container py-8 space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
       {usage && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="card-hover">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">AI Generations</CardTitle>
             </CardHeader>
@@ -62,7 +62,7 @@ export default function DashboardPage() {
               {usage.aiGenerations != null && <p className="text-xs text-muted-foreground">this month</p>}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="card-hover">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">ATS Scans</CardTitle>
             </CardHeader>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground">this month</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="card-hover">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Job Matches</CardTitle>
             </CardHeader>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground">this month</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="card-hover">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Resumes</CardTitle>
             </CardHeader>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
+        <Card className="card-hover">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -126,7 +126,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />

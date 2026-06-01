@@ -87,20 +87,21 @@ model UserProfile {
 }
 
 model SubscriptionPlan {
-  id          String   @id @default(cuid())
-  name        String   @unique // FREE, PRO, PREMIUM
-  description String?
-  priceEgp    Float?
-  priceUsd    Float?
-  interval    String   @default("month") // month, year
+  id             String   @id @default(cuid())
+  name           String   @unique // FREE, PRO, PREMIUM
+  description    String?
+  priceEgp       Float?
+  priceUsd       Float?
+  interval       String   @default("month") // month, year
+  stripePriceId  String?
   annualDiscountPct Float @default(20)
-  features    Json     @default("{}")
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  features       Json     @default("{}")
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  subscriptions UserSubscription[]
+  subscriptions  UserSubscription[]
 
   @@map("subscription_plans")
 }
@@ -127,12 +128,13 @@ model UserSubscription {
 
 model AddonPack {
   id       String    @id @default(cuid())
-  type     AddonType
-  credits  Int
-  priceEgp Float
-  priceUsd Float?
-  isActive Boolean   @default(true)
-  createdAt DateTime @default(now())
+  type           AddonType
+  credits        Int
+  priceEgp       Float
+  priceUsd       Float?
+  stripePriceId  String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime @default(now())
 
   purchases AddonPurchase[]
 

@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { ResumesService } from './resumes.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -48,6 +50,25 @@ export class ResumesController {
   @ApiOperation({ summary: 'Delete resume' })
   async delete(@Param('id') id: string, @CurrentUser() user: any) {
     return this.resumesService.delete(id, user.id);
+  }
+
+  @Post('upload')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload resume file from device' })
+  @ApiConsumes('multipart/form-data')
+  async upload(@CurrentUser() user: any, @UploadedFile() file: any) {
+    return this.resumesService.createFromUpload(user.id, file);
+  }
+
+  @Get(':id/download')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Download resume as HTML' })
+  async download(@Param('id') id: string, @CurrentUser() user: any, @Res() res: Response) {
+    const html = await this.resumesService.exportHtml(id, user.id);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="resume.html"`);
+    res.send(html);
   }
 
   @Post(':id/toggle-public')

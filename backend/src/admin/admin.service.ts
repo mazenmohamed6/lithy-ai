@@ -67,6 +67,32 @@ export class AdminService {
     };
   }
 
+  async getSubscriptions() {
+    const subscriptions = await this.prisma.userSubscription.findMany({
+      include: { user: { select: { email: true, id: true } }, plan: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { subscriptions, total: subscriptions.length };
+  }
+
+  async getAnalyticsOverview() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [totalUsers, activeSubscriptions, totalRevenue, aiGenerations30d, resumesCreated30d] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.userSubscription.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.payment.aggregate({ _sum: { amount: true }, where: { status: 'succeeded' } }),
+      this.prisma.aIGeneration.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+      this.prisma.resume.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    ]);
+    return {
+      totalUsers,
+      activeSubscriptions,
+      totalRevenue: totalRevenue._sum.amount || 0,
+      aiGenerations30d,
+      resumesCreated30d,
+    };
+  }
+
   async getAIMetrics() {
     const total = await this.prisma.aIGeneration.count();
     const totalCost = await this.prisma.aIGeneration.aggregate({

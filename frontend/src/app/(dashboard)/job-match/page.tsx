@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, Target, ArrowUpRight } from "lucide-react";
+import { ResumeUpload } from "@/components/resume-upload";
 
 export default function JobMatchPage() {
   const [resumeText, setResumeText] = useState("");
@@ -30,14 +31,14 @@ export default function JobMatchPage() {
   };
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container py-8 space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold">Job Match Analyzer</h1>
         <p className="text-muted-foreground">See how well your resume matches a job description.</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="card-hover">
           <CardHeader>
             <CardTitle className="text-lg">Input</CardTitle>
             <CardDescription>Paste your resume and the job description</CardDescription>
@@ -45,7 +46,7 @@ export default function JobMatchPage() {
           <CardContent className="space-y-4">
             <div>
               <label className="text-sm font-medium">Your Resume</label>
-              <textarea className="w-full min-h-[200px] mt-1 rounded-md border border-input bg-transparent p-3 text-sm" value={resumeText} onChange={(e) => setResumeText(e.target.value)} placeholder="Paste your resume..." />
+              <ResumeUpload onResumeText={setResumeText} initialText={resumeText} />
             </div>
             <div>
               <label className="text-sm font-medium">Job Description</label>
@@ -58,7 +59,7 @@ export default function JobMatchPage() {
         </Card>
 
         {result && (
-          <Card>
+          <Card className="card-hover animate-slide-in-right">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />

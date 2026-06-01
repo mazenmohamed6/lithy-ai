@@ -12,11 +12,12 @@ async function main() {
       description: 'Get started with basic resume building',
       priceEgp: 0,
       interval: 'month',
+      stripePriceId: null,
       features: JSON.stringify({
         maxResumes: 3,
-        aiGenerations: 0,
-        atsScans: 0,
-        jobMatches: 0,
+        aiGenerations: 2,
+        atsScans: 2,
+        jobMatches: 2,
         linkedinOptimizer: false,
         coverLetters: true,
         templates: 'basic',
@@ -33,6 +34,7 @@ async function main() {
       description: 'Professional resume building with AI power',
       priceEgp: 75,
       interval: 'month',
+      stripePriceId: 'price_1Td4zDEqFdud3sNVS1TdRtpa',
       features: JSON.stringify({
         maxResumes: 10,
         aiGenerations: 10,
@@ -54,6 +56,7 @@ async function main() {
       description: 'Unlimited AI-powered career tools',
       priceEgp: 150,
       interval: 'month',
+      stripePriceId: 'price_1TdHTKEqFdud3sNVeqXyBbAo',
       features: JSON.stringify({
         maxResumes: -1,
         aiGenerations: -1,
@@ -85,8 +88,9 @@ async function main() {
       id: 'plan_pro_annual',
       name: 'PRO_ANNUAL',
       description: 'Professional resume building - annual (20% off)',
-      priceEgp: 720, // 75 * 12 * 0.8
+      priceEgp: 720,
       interval: 'year',
+      stripePriceId: 'price_1Td50mEqFdud3sNVtHwFwBKT',
       features: JSON.stringify({
         maxResumes: 10,
         aiGenerations: 10,
@@ -106,8 +110,9 @@ async function main() {
       id: 'plan_premium_annual',
       name: 'PREMIUM_ANNUAL',
       description: 'Unlimited career tools - annual (20% off)',
-      priceEgp: 1440, // 150 * 12 * 0.8
+      priceEgp: 1440,
       interval: 'year',
+      stripePriceId: 'price_1TdKWZEqFdud3sNVIWs7rTT9',
       features: JSON.stringify({
         maxResumes: -1,
         aiGenerations: -1,
@@ -140,6 +145,7 @@ async function main() {
       type: AddonType.AI_GENERATION,
       credits: 10,
       priceEgp: 30,
+      stripePriceId: 'price_1TdHV6EqFdud3sNV34MRornK',
     },
   ];
 

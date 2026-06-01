@@ -12,14 +12,17 @@ const plans = [
   {
     name: "Free",
     price: "0",
+    monthlyPlan: "free",
+    annualPlan: "free",
     description: "Get started with basic resume building",
-    features: ["3 resumes", "Basic templates", "PDF export with branding", "Cover letter generation", "No AI features"],
+    features: ["3 resumes", "Basic templates", "PDF export with branding", "Cover letter generation", "AI resume generation (2/mo)", "ATS score analysis (2/mo)", "Job match analysis (2/mo)"],
     cta: "Get Started",
-    href: "/signup",
   },
   {
     name: "Pro",
     price: "75",
+    monthlyPlan: "pro",
+    annualPlan: "pro_annual",
     description: "Professional tools for serious job seekers",
     popular: true,
     features: [
@@ -32,11 +35,12 @@ const plans = [
       "Cover letter generation",
     ],
     cta: "Start Free Trial",
-    href: "/signup",
   },
   {
     name: "Premium",
     price: "150",
+    monthlyPlan: "premium",
+    annualPlan: "premium_annual",
     description: "Unlimited career acceleration",
     features: [
       "Unlimited resumes",
@@ -49,25 +53,27 @@ const plans = [
       "Priority support",
     ],
     cta: "Start Free Trial",
-    href: "/signup",
   },
 ];
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(false);
 
+  const planHref = (plan: typeof plans[number]) => `/signup?plan=${annual ? plan.annualPlan : plan.monthlyPlan}`;
+
   return (
     <div className="py-24">
       <div className="container text-center max-w-3xl mb-12">
         <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
         <p className="text-lg text-muted-foreground mb-8">Choose the plan that fits your career goals. All plans include a 7-day free trial.</p>
-        <div className="flex items-center justify-center gap-4">
-          <span className={cn("text-sm", !annual && "font-semibold")}>Monthly</span>
-          <button onClick={() => setAnnual(!annual)} className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors", annual ? "bg-primary" : "bg-muted")}>
-            <span className={cn("inline-block h-4 w-4 rounded-full bg-white transition-transform", annual ? "translate-x-6" : "translate-x-1")} />
-          </button>
-          <span className={cn("text-sm", annual && "font-semibold")}>Annual <span className="text-green-600">-20%</span></span>
-        </div>
+                <div className="flex items-center justify-center gap-4">
+                  <span className={cn("text-sm", !annual && "font-semibold")}>Monthly</span>
+                  <button onClick={() => setAnnual(!annual)} className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors", annual ? "bg-primary" : "bg-muted")}>
+                    <span className={cn("inline-block h-4 w-4 rounded-full bg-white transition-transform", annual ? "translate-x-6" : "translate-x-1")} />
+                  </button>
+                  <span className={cn("text-sm", annual && "font-semibold")}>Annual <span className="text-green-600">-20%</span></span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">After signup, visit the <a href="/billing" className="text-primary hover:underline">Billing page</a> to complete payment.</p>
       </div>
       <div className="container grid md:grid-cols-3 gap-8 max-w-5xl">
         {plans.map((plan) => (
@@ -103,7 +109,7 @@ export default function PricingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Link href={plan.href} className="w-full">
+              <Link href={planHref(plan)} className="w-full">
                 <Button className="w-full" variant={plan.popular ? "default" : "outline"}>{plan.cta}</Button>
               </Link>
             </CardFooter>

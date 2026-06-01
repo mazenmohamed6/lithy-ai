@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get("/admin/logs").then(setLogs).catch(console.error);
+    api.get("/admin/logs").then(setLogs).catch(() => toast.error("Failed to load logs"));
   }, []);
 
   return (

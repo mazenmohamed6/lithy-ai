@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function AdminAnalyticsPage() {
   const [stats, setStats] = useState<any>({});
 
   useEffect(() => {
-    api.get("/admin/analytics").then(setStats).catch(console.error);
+    api.get("/admin/analytics").then(setStats).catch(() => toast.error("Failed to load analytics"));
   }, []);
 
   const cards = [

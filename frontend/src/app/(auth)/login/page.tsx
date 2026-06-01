@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { api } from "@/lib/api";
 import { APP_NAME } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -22,12 +23,16 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       toast.error(error.message);
       setIsLoading(false);
       return;
+    }
+
+    if (data.user) {
+      api.post("/auth/sync", { userId: data.user.id, email: data.user.email }).catch(() => {});
     }
 
     toast.success("Welcome back!");

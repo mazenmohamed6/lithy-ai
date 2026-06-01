@@ -17,6 +17,10 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -36,6 +40,35 @@ export default function SettingsPage() {
       toast.error(err.message || "Failed to update profile");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setIsUpdatingPassword(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: user?.email || "", password: currentPassword });
+    if (error) {
+      toast.error("Current password is incorrect");
+      setIsUpdatingPassword(false);
+      return;
+    }
+    try {
+      await api.post("/auth/update-password", { newPassword });
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update password");
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -127,19 +160,21 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Current Password</Label>
-                <Input type="password" placeholder="Enter current password" />
+                <Input type="password" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>New Password</Label>
-                  <Input type="password" placeholder="Min. 8 characters" />
+                  <Input type="password" placeholder="Min. 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Confirm New Password</Label>
-                  <Input type="password" placeholder="Confirm new password" />
+                  <Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                 </div>
               </div>
-              <Button>Update Password</Button>
+              <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
+                {isUpdatingPassword ? "Updating..." : "Update Password"}
+              </Button>
               <div className="pt-6 border-t">
                 <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
               </div>

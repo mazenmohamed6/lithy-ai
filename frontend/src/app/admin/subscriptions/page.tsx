@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function AdminSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get("/admin/subscriptions").then(setSubscriptions).catch(console.error);
+    api.get("/admin/subscriptions").then((data: any) => setSubscriptions(data.subscriptions || data)).catch(() => toast.error("Failed to load subscriptions"));
   }, []);
 
   return (

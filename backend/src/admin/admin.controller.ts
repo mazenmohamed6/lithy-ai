@@ -66,6 +66,24 @@ export class AdminController {
     return this.adminService.toggleFeatureFlag(id, body.enabled);
   }
 
+  @Get('content')
+  @ApiOperation({ summary: 'Get all blog posts (content alias)' })
+  async getContent() {
+    return this.adminService.getBlogPosts();
+  }
+
+  @Get('subscriptions')
+  @ApiOperation({ summary: 'Get all subscriptions' })
+  async getSubscriptions() {
+    return this.adminService.getSubscriptions();
+  }
+
+  @Get('analytics')
+  @ApiOperation({ summary: 'Get analytics overview' })
+  async getAnalytics() {
+    return this.adminService.getAnalyticsOverview();
+  }
+
   @Get('blog')
   @ApiOperation({ summary: 'Get all blog posts' })
   async getBlogPosts() {

@@ -21,16 +21,26 @@ export class PaymentsService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 
-    const session = await this.stripe.checkout.sessions.create({
+    const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: user.email,
       client_reference_id: userId,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: { userId },
-    });
+    };
+
+    if (subscription?.stripeCustomerId) {
+      sessionParams.customer = subscription.stripeCustomerId;
+    } else {
+      sessionParams.customer_email = user.email;
+      sessionParams.subscription_data = { trial_period_days: 7 };
+    }
+
+    const session = await this.stripe.checkout.sessions.create(sessionParams);
 
     return { url: session.url, sessionId: session.id };
   }
@@ -113,15 +123,19 @@ export class PaymentsService {
     if (session.mode === 'subscription') {
       const subscription = await this.stripe.subscriptions.retrieve(session.subscription as string);
 
-      const plan = await this.prisma.subscriptionPlan.findFirst({
-        where: { id: subscription.items.data[0]?.price?.product?.toString() },
-      });
+      const stripePriceId = subscription.items.data[0]?.price?.id;
+      const plan = stripePriceId
+        ? await this.prisma.subscriptionPlan.findFirst({ where: { stripePriceId } })
+        : null;
+
+      const planId = plan?.id || 'plan_pro';
+      const planName = plan?.name || 'PRO';
 
       await this.prisma.userSubscription.upsert({
         where: { userId },
         create: {
           userId,
-          planId: plan?.id || 'pro',
+          planId,
           status: 'ACTIVE',
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: session.customer as string,
@@ -130,6 +144,7 @@ export class PaymentsService {
         },
         update: {
           status: 'ACTIVE',
+          planId,
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: session.customer as string,
           currentPeriodStart: new Date(subscription.current_period_start * 1000),
@@ -137,21 +152,20 @@ export class PaymentsService {
         },
       });
 
-      await this.updateUserRole(userId, plan?.name || 'PRO');
+      await this.updateUserRole(userId, planName);
     } else if (session.mode === 'payment' && session.metadata?.packId) {
       await this.handleAddonPurchase(session);
+      await this.prisma.payment.create({
+        data: {
+          userId,
+          stripePaymentId: session.payment_intent as string,
+          amount: (session.amount_total || 0) / 100,
+          currency: session.currency || 'egp',
+          status: 'succeeded',
+          description: 'Add-on purchase',
+        },
+      });
     }
-
-    await this.prisma.payment.create({
-      data: {
-        userId,
-        stripePaymentId: session.payment_intent as string,
-        amount: (session.amount_total || 0) / 100,
-        currency: session.currency || 'egp',
-        status: 'succeeded',
-        description: session.mode === 'subscription' ? 'Subscription payment' : 'Add-on purchase',
-      },
-    });
   }
 
   private async handleAddonPurchase(session: Stripe.Checkout.Session) {
@@ -175,10 +189,11 @@ export class PaymentsService {
     });
 
     if (subscription) {
+      const paymentIntent = invoice.payment_intent;
       await this.prisma.payment.create({
         data: {
           userId: subscription.userId,
-          stripePaymentId: invoice.payment_intent as string,
+          stripePaymentId: typeof paymentIntent === 'string' ? paymentIntent : invoice.id,
           stripeInvoiceId: invoice.id,
           amount: invoice.total / 100,
           currency: invoice.currency,
@@ -217,22 +232,48 @@ export class PaymentsService {
       : subscription.status === 'trialing' ? 'TRIALING'
       : 'EXPIRED';
 
+    const stripePriceId = subscription.items.data[0]?.price?.id;
+    const plan = stripePriceId
+      ? await this.prisma.subscriptionPlan.findFirst({ where: { stripePriceId } })
+      : null;
+
     await this.prisma.userSubscription.update({
       where: { stripeSubscriptionId: subscription.id },
       data: {
         status: status as any,
+        planId: plan?.id || undefined,
         currentPeriodStart: new Date(subscription.current_period_start * 1000),
         currentPeriodEnd: new Date(subscription.current_period_end * 1000),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
       },
     });
+
+    if (plan) {
+      const userSub = await this.prisma.userSubscription.findUnique({
+        where: { stripeSubscriptionId: subscription.id },
+      });
+      if (userSub) {
+        await this.updateUserRole(userSub.userId, plan.name);
+      }
+    }
   }
 
   private async updateUserRole(userId: string, planName: string) {
-    const role = planName === 'PREMIUM' ? 'PRO' : planName === 'PRO' ? 'PRO' : 'USER';
+    const isPaid = planName.startsWith('PRO') || planName.startsWith('PREMIUM');
+    const role = isPaid ? 'PRO' : 'USER';
     await this.prisma.user.update({
       where: { id: userId },
       data: { role: role as any },
     });
+  }
+
+  async cancelStripeSubscription(stripeSubscriptionId: string) {
+    try {
+      await this.stripe.subscriptions.update(stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+    } catch (err) {
+      this.logger.error(`Failed to cancel Stripe subscription ${stripeSubscriptionId}: ${err}`);
+    }
   }
 }

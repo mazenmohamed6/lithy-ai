@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../common/prisma.service';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paymentsService: PaymentsService,
+  ) {}
 
   async getPlans() {
     return this.prisma.subscriptionPlan.findMany({
@@ -46,14 +50,10 @@ export class SubscriptionsService {
     });
     const addonCreditsTotal = addonPurchases.reduce((sum, p) => sum + p.pack.credits, 0);
 
-    const planLimits: Record<string, number> = {
-      FREE: 0,
-      PRO: 10,
-      PREMIUM: Infinity,
-    };
-
-    const limit = planLimits[subscription?.plan?.name || 'FREE'] || 0;
-    const remaining = limit === Infinity ? Infinity : limit - usage;
+    const features = (subscription?.plan?.features || '{}') as any;
+    const parsed = typeof features === 'string' ? JSON.parse(features) : features;
+    const limit = parsed.aiGenerations ?? 0;
+    const remaining = limit === -1 ? Infinity : limit - usage;
 
     return {
       planName: subscription?.plan?.name || 'FREE',
@@ -68,6 +68,10 @@ export class SubscriptionsService {
   async cancelSubscription(userId: string) {
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
     if (!subscription) throw new NotFoundException('No active subscription');
+
+    if (subscription.stripeSubscriptionId) {
+      await this.paymentsService.cancelStripeSubscription(subscription.stripeSubscriptionId);
+    }
 
     return this.prisma.userSubscription.update({
       where: { userId },

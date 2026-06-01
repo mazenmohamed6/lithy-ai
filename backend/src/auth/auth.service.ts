@@ -21,20 +21,47 @@ export class AuthService {
     const { data, error } = await this.supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: false,
+      email_confirm: true,
       user_metadata: metadata,
     });
 
     if (error) throw new BadRequestException(error.message);
 
+    const userId = data.user!.id;
+
     await this.prisma.user.create({
       data: {
-        id: data.user!.id,
+        id: userId,
         email: data.user!.email!,
       },
     });
 
-    return { user: data.user, message: 'Verification email sent' };
+    const selectedPlan = metadata?.selectedPlan || 'free';
+    if (selectedPlan !== 'free') {
+      const plan = await this.prisma.subscriptionPlan.findFirst({
+        where: { name: selectedPlan.toUpperCase() as any, isActive: true },
+      });
+      if (plan) {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 7);
+
+        await this.prisma.userSubscription.create({
+          data: {
+            userId,
+            planId: plan.id,
+            status: 'TRIALING',
+            trialEnd,
+          },
+        });
+
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { role: 'PRO' },
+        });
+      }
+    }
+
+    return { user: data.user, message: 'Account created successfully' };
   }
 
   async signIn(email: string, password: string) {
@@ -112,5 +139,16 @@ export class AuthService {
 
     await this.prisma.user.delete({ where: { id: userId } });
     return { message: 'Account deleted' };
+  }
+
+  async syncUser(userId: string, email: string) {
+    const exists = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (exists) return { synced: false, message: 'User already exists' };
+
+    await this.prisma.user.create({
+      data: { id: userId, email },
+    });
+
+    return { synced: true, message: 'User created' };
   }
 }

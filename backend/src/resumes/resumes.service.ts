@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class ResumesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
   async findAll(userId: string) {
     return this.prisma.resume.findMany({
@@ -45,10 +50,11 @@ export class ResumesService {
   async create(userId: string, data: { title?: string; templateId?: string }) {
     const resumeCount = await this.prisma.resume.count({ where: { userId } });
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
-    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'free' } });
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
 
-    const maxResumes = 10; // Default max; check plan limits
-    if (resumeCount >= maxResumes) {
+    const features = (plan?.features || {}) as Record<string, any>;
+    const maxResumes = features.maxResumes ?? 3;
+    if (maxResumes !== -1 && resumeCount >= maxResumes) {
       throw new ForbiddenException('Resume limit reached. Upgrade your plan.');
     }
 
@@ -108,6 +114,76 @@ export class ResumesService {
 
     await this.prisma.resume.delete({ where: { id } });
     return { message: 'Resume deleted' };
+  }
+
+  async createFromUpload(userId: string, file: any) {
+    if (!file) throw new BadRequestException('No file provided');
+    if (!file.originalname.match(/\.(pdf|docx|doc|txt)$/i)) {
+      throw new BadRequestException('Only PDF, DOCX, and TXT files are supported');
+    }
+
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    const fileName = `${Date.now()}_${file.originalname}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, file.buffer);
+
+    const textContent = file.mimetype === 'text/plain'
+      ? file.buffer.toString('utf-8')
+      : `Uploaded file: ${file.originalname}`;
+
+    const sections = [
+      { id: 'contact', type: 'contact', title: 'Contact', enabled: true, fields: { fullName: file.originalname.replace(/\.[^/.]+$/, '') } },
+      { id: 'summary', type: 'summary', title: 'Professional Summary', enabled: true, content: textContent.substring(0, 2000) },
+      { id: 'experience', type: 'experience', title: 'Experience', enabled: true, items: [] },
+      { id: 'education', type: 'education', title: 'Education', enabled: true, items: [] },
+      { id: 'skills', type: 'skills', title: 'Skills', enabled: true, items: [] },
+    ];
+
+    const resume = await this.prisma.resume.create({
+      data: { userId, title: file.originalname.replace(/\.[^/.]+$/, ''), sections, templateId: 'default' },
+    });
+
+    await this.prisma.resumeVersion.create({
+      data: { resumeId: resume.id, sections: sections as any, versionNumber: 1 },
+    });
+
+    return resume;
+  }
+
+  async exportHtml(id: string, userId: string): Promise<string> {
+    const resume = await this.findById(id, userId);
+    const contact = (resume.sections as any[]).find((s) => s.id === 'contact')?.fields || {};
+
+    const sectionHtml = (resume.sections as any[])
+      .filter((s) => s.id !== 'contact' && s.enabled !== false)
+      .map((s) => {
+        if (s.id === 'summary') return `<section><h2>${s.title}</h2><p>${s.content || ''}</p></section>`;
+        if (s.id === 'skills') return `<section><h2>${s.title}</h2><p>${(s.items || []).join(' • ')}</p></section>`;
+        if (s.items?.length) {
+          const items = s.items.map((i: any) => `
+            <div class="item">
+              <div class="item-header"><strong>${i.title || ''}</strong> <span>${i.startDate || ''}${i.startDate ? ' - ' : ''}${i.current ? 'Present' : i.endDate || ''}</span></div>
+              <div class="item-sub">${i.company || i.institution || ''}</div>
+              <p>${i.description || ''}</p>
+            </div>`).join('');
+          return `<section><h2>${s.title}</h2>${items}</section>`;
+        }
+        return '';
+      }).join('');
+
+    return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${resume.title}</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.6}
+  h1{font-size:24px;margin-bottom:4px} .contact{color:#666;font-size:14px;margin-bottom:24px}
+  h2{font-size:18px;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}
+  .item{margin-bottom:16px} .item-header{display:flex;justify-content:space-between;font-size:14px}
+  .item-sub{color:#666;font-size:13px} p{font-size:14px;margin:4px 0}
+</style></head><body>
+  <h1>${contact.fullName || resume.title}</h1>
+  <div class="contact">${[contact.email, contact.phone, contact.location].filter(Boolean).join(' | ')}</div>
+  ${sectionHtml}
+</body></html>`;
   }
 
   async togglePublic(id: string, userId: string) {

@@ -7,14 +7,21 @@ import { PrismaService } from '../common/prisma.service';
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private openai: OpenAI;
+  private readonly model: string;
 
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
+    const apiKey = this.configService.get<string>('GROQ_API_KEY');
+    if (!apiKey) {
+      throw new Error('GROQ_API_KEY is not set. Get a free key at https://console.groq.com');
+    }
     this.openai = new OpenAI({
-      apiKey: this.configService.get<string>('OPENAI_API_KEY')!,
+      apiKey,
+      baseURL: 'https://api.groq.com/openai/v1',
     });
+    this.model = this.configService.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile';
   }
 
   async generateResume(userId: string, data: { sections: any[]; tone?: string; keywords?: string; focusArea?: string }) {
@@ -25,7 +32,7 @@ export class AiService {
       const userPrompt = this.buildResumeUserPrompt(data.sections);
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -50,7 +57,7 @@ export class AiService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.model,
         messages: [
           { role: 'system', content: "You are an expert resume writer. Improve the resume sections based on the user's instructions. Return JSON with improved sections." },
           { role: 'user', content: JSON.stringify({ sections: data.sections, instructions: data.instructions }) },
@@ -74,7 +81,7 @@ export class AiService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.model,
         messages: [
           { role: 'system', content: this.buildCoverLetterSystemPrompt(data.tone) },
           { role: 'user', content: JSON.stringify({
@@ -102,7 +109,7 @@ export class AiService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -135,7 +142,7 @@ export class AiService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -168,7 +175,7 @@ export class AiService {
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: this.model,
         messages: [
           {
             role: 'system',
@@ -203,10 +210,31 @@ export class AiService {
       include: { plan: true },
     });
 
-    const planName = subscription?.plan?.name || 'FREE';
-    if (planName === 'FREE') {
-      throw new BadRequestException('AI features are not available on the Free plan. Upgrade to Pro.');
+    const features = (subscription?.plan?.features || '{}') as any;
+    const parsed = typeof features === 'string' ? JSON.parse(features) : features;
+
+    const featureMap: Record<string, { key: string; isBool: boolean }> = {
+      RESUME_GENERATION: { key: 'aiGenerations', isBool: false },
+      RESUME_IMPROVEMENT: { key: 'aiGenerations', isBool: false },
+      COVER_LETTER: { key: 'aiGenerations', isBool: false },
+      ATS_SCAN: { key: 'atsScans', isBool: false },
+      JOB_MATCH: { key: 'jobMatches', isBool: false },
+      LINKEDIN_OPTIMIZATION: { key: 'linkedinOptimizer', isBool: true },
+    };
+
+    const feature = featureMap[type];
+    if (!feature) return;
+
+    const value = parsed[feature.key];
+    if (value === undefined) return;
+
+    if (feature.isBool) {
+      if (!value) throw new BadRequestException(`${type} is not available on your current plan. Upgrade to access this feature.`);
+      return;
     }
+
+    const limit = value === -1 ? Infinity : value;
+    if (limit === Infinity) return;
 
     const currentMonth = new Date();
     currentMonth.setDate(1);
@@ -215,9 +243,6 @@ export class AiService {
     const usageCount = await this.prisma.aIGeneration.count({
       where: { userId, type: type as any, createdAt: { gte: currentMonth } },
     });
-
-    const limits: Record<string, number> = { RESUME_GENERATION: 10, RESUME_IMPROVEMENT: 10, COVER_LETTER: 10, ATS_SCAN: 5, JOB_MATCH: 5, LINKEDIN_OPTIMIZATION: 5 };
-    const limit = planName === 'PREMIUM' ? Infinity : (limits[type] || 10);
 
     if (usageCount >= limit) {
       throw new BadRequestException(`Monthly limit reached for ${type}. Upgrade or purchase add-on pack.`);
@@ -232,7 +257,7 @@ export class AiService {
           type: type as any,
           promptTokens: 0,
           completionTokens: 0,
-          model: 'gpt-4o',
+          model: this.model,
           costEgp: 0,
           status: 'failed',
           errorMessage,
@@ -254,7 +279,7 @@ export class AiService {
         type: type as any,
         promptTokens: usage?.prompt_tokens || 0,
         completionTokens: usage?.completion_tokens || 0,
-        model: 'gpt-4o',
+        model: this.model,
         costEgp: costUsd * 48, // Approximate EGP conversion
         status: 'completed',
       },

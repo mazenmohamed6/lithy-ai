@@ -5,20 +5,21 @@ import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function AdminFeatureFlagsPage() {
   const [flags, setFlags] = useState<any[]>([]);
 
   useEffect(() => {
-    api.get("/admin/feature-flags").then(setFlags).catch(console.error);
+    api.get("/admin/feature-flags").then(setFlags).catch(() => toast.error("Failed to load feature flags"));
   }, []);
 
   const toggleFlag = async (id: string, enabled: boolean) => {
     try {
       await api.put(`/admin/feature-flags/${id}`, { enabled: !enabled });
       setFlags(flags.map((f) => (f.id === id ? { ...f, enabled: !enabled } : f)));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      toast.error("Failed to toggle feature flag");
     }
   };
 
