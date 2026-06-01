@@ -1,0 +1,6 @@
+{
+  "name": "lithy-ai-backend",
+  "buildCommand": "cd backend && npm install && npx prisma generate && npx nest build",
+  "startCommand": "cd backend && npx prisma migrate deploy && node dist/src/main.js",
+  "healthcheckPath": "/api/v1/subscriptions/plans"
+}
