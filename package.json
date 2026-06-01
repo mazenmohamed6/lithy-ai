@@ -23,13 +23,14 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "typescript": "^5.4.0",
-    "next": "^14.2.15",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "typescript": "^5.4.0"
   },
   "dependencies": {
     "postcss": "^8.5.15",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "lightningcss-linux-x64-gnu": "^1.29.0"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "^1.29.0"
   }
 }
