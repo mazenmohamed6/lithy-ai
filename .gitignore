@@ -27,6 +27,11 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Unsupported filesystem files
+scripts/start-all.ps1
+backend/prod.err
+backend/prod.log
+
 # Coverage
 coverage/
 
