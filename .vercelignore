@@ -1,0 +1,4 @@
+scripts/start-all.ps1
+backend/prod.err
+backend/prod.log
+*.log
