@@ -1,7 +1,8 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build -w frontend",
-  "outputDirectory": "frontend/.next",
-  "installCommand": "npm install",
+  "rootDirectory": "frontend",
+  "buildCommand": "cd .. && npx next build",
+  "outputDirectory": ".next",
+  "installCommand": "cd .. && npm install",
   "ignoreCommand": "npx -w frontend next-ignore"
 }
