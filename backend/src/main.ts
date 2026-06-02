@@ -1,33 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  const configService = app.get(ConfigService);
-  const logger = new Logger('Bootstrap');
 
-  app.setGlobalPrefix('api/v1');
-
-  app.use(helmet());
   app.use(compression());
   app.use(cookieParser());
 
-  const frontendUrl = configService.get<string>('FRONTEND_URL');
-  if (!frontendUrl) {
-    throw new Error('FRONTEND_URL environment variable is required');
-  }
-  app.enableCors({
-    origin: frontendUrl,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
-  });
+  app.enableCors({ origin: '*', credentials: true });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -38,19 +22,9 @@ async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('LITHY AI API')
-    .setDescription('AI-Powered Resume Builder SaaS API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
-
-  const port = configService.get<number>('PORT', 4000);
+  const port = process.env.PORT || 4000;
   await app.listen(port);
-  logger.log(`LITHY AI API running on port ${port}`);
+  new Logger('Bootstrap').log(`API running on port ${port}`);
 }
 
 bootstrap();

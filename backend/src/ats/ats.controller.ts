@@ -5,7 +5,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('ATS')
-@Controller('ats')
+@Controller('api/v1/ats')
 @UseGuards(AuthGuard)
 export class AtsController {
   constructor(private atsService: AtsService) {}

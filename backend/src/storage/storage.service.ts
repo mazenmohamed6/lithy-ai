@@ -8,10 +8,12 @@ export class StorageService {
   private supabase;
 
   constructor(private configService: ConfigService) {
-    this.supabase = createClient(
-      this.configService.get<string>('SUPABASE_URL')!,
-      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL') || process.env.SUPABASE_URL || '';
+    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') || this.configService.get<string>('SUPABASE_ANON_KEY') || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl) {
+      throw new Error('StorageService requires SUPABASE_URL env var');
+    }
+    this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
   async uploadFile(bucket: string, path: string, file: Buffer, contentType: string) {

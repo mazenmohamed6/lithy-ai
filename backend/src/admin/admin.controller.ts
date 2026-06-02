@@ -6,7 +6,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('Admin')
-@Controller('admin')
+@Controller('api/v1/admin')
 @UseGuards(AuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class AdminController {

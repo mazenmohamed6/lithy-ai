@@ -5,7 +5,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Payments')
-@Controller('payments')
+@Controller('api/v1/payments')
 export class PaymentsController {
   constructor(private paymentsService: PaymentsService) {}
 

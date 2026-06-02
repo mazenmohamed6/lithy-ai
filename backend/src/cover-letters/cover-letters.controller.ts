@@ -5,7 +5,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Cover Letters')
-@Controller('cover-letters')
+@Controller('api/v1/cover-letters')
 @UseGuards(AuthGuard)
 export class CoverLettersController {
   constructor(private coverLettersService: CoverLettersService) {}

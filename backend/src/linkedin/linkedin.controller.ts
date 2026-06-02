@@ -5,7 +5,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('LinkedIn')
-@Controller('linkedin')
+@Controller('api/v1/linkedin')
 @UseGuards(AuthGuard)
 export class LinkedInController {
   constructor(private linkedInService: LinkedInService) {}

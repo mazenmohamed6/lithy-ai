@@ -7,7 +7,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Resumes')
-@Controller('resumes')
+@Controller('api/v1/resumes')
 export class ResumesController {
   constructor(private resumesService: ResumesService) {}
 

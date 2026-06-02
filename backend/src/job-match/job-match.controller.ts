@@ -5,7 +5,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Job Match')
-@Controller('job-match')
+@Controller('api/v1/job-match')
 @UseGuards(AuthGuard)
 export class JobMatchController {
   constructor(private jobMatchService: JobMatchService) {}

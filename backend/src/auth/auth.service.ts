@@ -7,18 +7,22 @@ import { PrismaService } from '../common/prisma.service';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private supabase: SupabaseClient;
+  private supabaseAdmin: SupabaseClient;
 
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    const supabaseUrl = this.configService.get<string>('SUPABASE_URL')!;
-    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY')!;
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL') || process.env.SUPABASE_URL || '';
+    const anonKey = this.configService.get<string>('SUPABASE_ANON_KEY') || process.env.SUPABASE_ANON_KEY || '';
+    const serviceRoleKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+    this.supabase = createClient(supabaseUrl, anonKey);
+    this.supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
   }
 
   async signUp(email: string, password: string, metadata?: Record<string, any>) {
-    const { data, error } = await this.supabase.auth.admin.createUser({
+    const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -113,7 +117,7 @@ export class AuthService {
     const { data: user, error: userError } = await this.supabase.auth.getUser(accessToken);
     if (userError || !user.user) throw new BadRequestException('Invalid session');
 
-    const { error } = await this.supabase.auth.admin.updateUserById(user.user.id, {
+    const { error } = await this.supabaseAdmin.auth.admin.updateUserById(user.user.id, {
       password: newPassword,
     });
 
@@ -128,13 +132,13 @@ export class AuthService {
   }
 
   async revokeSession(token: string) {
-    const { error } = await this.supabase.auth.admin.signOut(token);
+    const { error } = await this.supabaseAdmin.auth.admin.signOut(token);
     if (error) throw new BadRequestException(error.message);
     return { message: 'Session revoked' };
   }
 
   async deleteAccount(userId: string) {
-    const { error } = await this.supabase.auth.admin.deleteUser(userId);
+    const { error } = await this.supabaseAdmin.auth.admin.deleteUser(userId);
     if (error) throw new BadRequestException(error.message);
 
     await this.prisma.user.delete({ where: { id: userId } });

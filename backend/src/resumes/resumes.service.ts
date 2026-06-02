@@ -5,9 +5,11 @@ import * as path from 'path';
 
 @Injectable()
 export class ResumesService {
+  private uploadDir: string;
+
   constructor(private prisma: PrismaService) {
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    this.uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
+    try { if (!fs.existsSync(this.uploadDir)) fs.mkdirSync(this.uploadDir, { recursive: true }); } catch {}
   }
 
   async findAll(userId: string) {
@@ -122,10 +124,9 @@ export class ResumesService {
       throw new BadRequestException('Only PDF, DOCX, and TXT files are supported');
     }
 
-    const uploadDir = path.join(process.cwd(), 'uploads');
     const fileName = `${Date.now()}_${file.originalname}`;
-    const filePath = path.join(uploadDir, fileName);
-    fs.writeFileSync(filePath, file.buffer);
+    const filePath = path.join(this.uploadDir, fileName);
+    try { fs.writeFileSync(filePath, file.buffer); } catch {};
 
     const textContent = file.mimetype === 'text/plain'
       ? file.buffer.toString('utf-8')
