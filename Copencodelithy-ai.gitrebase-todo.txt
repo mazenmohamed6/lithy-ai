@@ -1,0 +1,5 @@
+Microsoft Windows [Version 10.0.26200.8457]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\opencode\lithy-ai>squash bc97ce5 Pre-launch
+squash 352837e Clean C:/opencode/lithy-ai/.git/rebase-merge/git-rebase-todo
