@@ -8,7 +8,13 @@ let cachedServer: any;
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const { AppModule } = require('../dist/src/app.module');
+  let AppModule: any;
+  try {
+    AppModule = require('../dist/src/app.module').AppModule;
+  } catch (e: any) {
+    logger.error(`Failed to load AppModule: ${e.message}`);
+    throw e;
+  }
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
 
@@ -39,8 +45,18 @@ async function bootstrap() {
 }
 
 export default async (req: any, res: any) => {
-  if (!cachedServer) {
-    await bootstrap();
+  try {
+    if (!cachedServer) {
+      await bootstrap();
+    }
+    cachedServer(req, res);
+  } catch (e: any) {
+    const logger = new Logger('Handler');
+    logger.error(`Handler error: ${e.message}`);
+    res.status(500).json({
+      statusCode: 500,
+      message: e.message || 'Internal server error',
+      error: 'Internal Server Error',
+    });
   }
-  cachedServer(req, res);
 };
