@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { AntiAbuseService } from '../anti-abuse/anti-abuse.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -12,7 +13,10 @@ export class ResumesService {
   private readonly logger = new Logger(ResumesService.name);
   private uploadDir: string;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private antiAbuseService: AntiAbuseService,
+  ) {
     this.uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
     try { if (!fs.existsSync(this.uploadDir)) fs.mkdirSync(this.uploadDir, { recursive: true }); } catch {}
   }
@@ -87,7 +91,11 @@ export class ResumesService {
 
   async create(userId: string, userEmail: string, data: { title?: string; templateId?: string }) {
     await this.ensureUserExists(userId, userEmail);
-    const resumeCount = await this.prisma.resume.count({ where: { userId } });
+
+    // Count resumes across all linked accounts in the identity ledger
+    const ledgerUserIds = await this.getLedgerUserIds(userId);
+    const resumeCount = await this.prisma.resume.count({ where: { userId: { in: ledgerUserIds } } });
+
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
     const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
 
@@ -200,6 +208,18 @@ export class ResumesService {
     const textContent = await this.extractTextFromFile(file);
 
     await this.ensureUserExists(userId, userEmail);
+
+    // Enforce resume limit across identity ledger
+    const ledgerUserIds = await this.getLedgerUserIds(userId);
+    const resumeCount = await this.prisma.resume.count({ where: { userId: { in: ledgerUserIds } } });
+    const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
+    const features = (plan?.features || '{}') as any;
+    const parsed = typeof features === 'string' ? JSON.parse(features) : features;
+    const maxResumes = parsed.maxResumes ?? 3;
+    if (maxResumes !== -1 && resumeCount >= maxResumes) {
+      throw new ForbiddenException('Resume limit reached. Upgrade your plan.');
+    }
 
     const sections = [
       { id: 'contact', type: 'contact', title: 'Contact', enabled: true, fields: { fullName: file.originalname.replace(/\.[^/.]+$/, '') } },
@@ -357,6 +377,23 @@ export class ResumesService {
         templateId: resume.templateId,
       },
     });
+  }
+
+  private async getLedgerUserIds(userId: string): Promise<string[]> {
+    const userIds = [userId];
+    try {
+      const link = await this.prisma.linkedAccount.findFirst({ where: { userId } });
+      if (link) {
+        const siblings = await this.prisma.linkedAccount.findMany({
+          where: { ledgerId: link.ledgerId, status: 'ACTIVE', userId: { not: null } },
+          select: { userId: true },
+        });
+        for (const s of siblings) {
+          if (s.userId && !userIds.includes(s.userId)) userIds.push(s.userId);
+        }
+      }
+    } catch {}
+    return userIds;
   }
 
   private getDefaultSections() {
