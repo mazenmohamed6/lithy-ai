@@ -176,7 +176,7 @@ export default function SettingsPage() {
                 <p className="font-medium">{locale === "ar" ? "تسجيل الخروج" : "Sign Out"}</p>
                 <p className="text-sm text-muted-foreground">{locale === "ar" ? "تسجيل الخروج من حسابك" : "Sign out of your account"}</p>
               </div>
-              <Button variant="outline" onClick={() => { signOut(); window.location.href = "/"; }}>
+                <Button variant="outline" onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" /> {locale === "ar" ? "تسجيل الخروج" : "Log Out"}
               </Button>
             </CardContent>

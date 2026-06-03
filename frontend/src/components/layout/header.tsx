@@ -1,20 +1,30 @@
 "use client";
 
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSupabase } from "@/providers/supabase-provider";
 import { APP_NAME } from "@/lib/constants";
 import { useI18n, type Locale } from "@/lib/i18n/context";
-import { Menu, X, Globe, ChevronDown } from "lucide-react";
+import { Menu, X, Globe, LogOut, User } from "lucide-react";
 
 export function Header() {
   const pathname = usePathname();
-  const { user } = useSupabase();
+  const { user, signOut } = useSupabase();
   const { locale, setLocale, t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/signup");
   const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/resumes") || pathname.startsWith("/settings") || pathname.startsWith("/ats-scanner") || pathname.startsWith("/cover-letters");
 
@@ -86,10 +96,28 @@ export function Header() {
                   {t("nav.dashboard")}
                 </Button>
               </Link>
-              <Avatar className="size-8 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
-                <AvatarImage src={user.user_metadata?.avatar_url} />
-                <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
+              <div className="relative" ref={menuRef}>
+                <button onClick={() => setMenuOpen(!menuOpen)} className="focus:outline-none">
+                  <Avatar className="size-8 cursor-pointer ring-2 ring-border hover:ring-primary transition-all">
+                    <AvatarImage src={user.user_metadata?.avatar_url} />
+                    <AvatarFallback className="text-xs">{user.email?.[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border bg-background shadow-lg py-1 z-50">
+                    <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      <User className="size-4" /> Dashboard
+                    </Link>
+                    <Link href="/settings" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      Settings
+                    </Link>
+                    <hr className="my-1" />
+                    <button onClick={() => { setMenuOpen(false); signOut(); }} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-accent transition-colors w-full text-left">
+                      <LogOut className="size-4" /> Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="hidden md:flex items-center gap-2">
