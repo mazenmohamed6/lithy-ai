@@ -57,8 +57,9 @@ export class ResumesService {
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
     const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
 
-    const features = (plan?.features || {}) as Record<string, any>;
-    const maxResumes = features.maxResumes ?? 3;
+    const features = (plan?.features || '{}') as any;
+    const parsed = typeof features === 'string' ? JSON.parse(features) : features;
+    const maxResumes = parsed.maxResumes ?? 3;
     if (maxResumes !== -1 && resumeCount >= maxResumes) {
       throw new ForbiddenException('Resume limit reached. Upgrade your plan.');
     }

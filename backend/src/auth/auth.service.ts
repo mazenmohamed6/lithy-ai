@@ -178,6 +178,18 @@ export class AuthService {
       data: { id: userId, email },
     });
 
+    const freePlan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: 'FREE', isActive: true },
+    });
+
+    await this.prisma.userSubscription.create({
+      data: {
+        userId,
+        planId: freePlan?.id || 'plan_free',
+        status: 'ACTIVE',
+      },
+    });
+
     return { synced: true, message: 'User created' };
   }
 }
