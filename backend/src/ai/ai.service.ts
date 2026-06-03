@@ -28,6 +28,14 @@ export class AiService {
     const existing = await this.prisma.user.findUnique({ where: { id: userId } });
     if (existing) return;
 
+    if (email) {
+      const existingByEmail = await this.prisma.user.findUnique({ where: { email } });
+      if (existingByEmail) {
+        await this.prisma.user.delete({ where: { id: existingByEmail.id } });
+        this.logger.warn(`Removed stale Prisma user ${existingByEmail.id} (email conflict with ${userId})`);
+      }
+    }
+
     await this.prisma.user.create({
       data: { id: userId, email: email || `${userId}@lithy.ai` },
     });

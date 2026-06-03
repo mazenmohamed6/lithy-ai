@@ -41,6 +41,11 @@ export class AuthService {
 
     const userId = data.user!.id;
 
+    const existingByEmail = await this.prisma.user.findUnique({ where: { email: data.user!.email! } });
+    if (existingByEmail) {
+      await this.prisma.user.delete({ where: { id: existingByEmail.id } });
+    }
+
     await this.prisma.user.create({
       data: {
         id: userId,
@@ -173,6 +178,11 @@ export class AuthService {
   async syncUser(userId: string, email: string) {
     const exists = await this.prisma.user.findUnique({ where: { id: userId } });
     if (exists) return { synced: false, message: 'User already exists' };
+
+    const existingByEmail = await this.prisma.user.findUnique({ where: { email } });
+    if (existingByEmail) {
+      await this.prisma.user.delete({ where: { id: existingByEmail.id } });
+    }
 
     await this.prisma.user.create({
       data: { id: userId, email },
