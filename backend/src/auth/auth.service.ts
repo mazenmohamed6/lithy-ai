@@ -37,7 +37,7 @@ export class AuthService {
     const browserFingerprint = metadata?.browserFingerprint as string | undefined;
 
     if (phone) {
-      const existingPhone = await this.prisma.userProfile.findUnique({ where: { phone } });
+      const existingPhone = await this.prisma.userProfile.findFirst({ where: { phone } });
       if (existingPhone) {
         throw new BadRequestException('This phone number is already registered with another account. Each phone number can only be used for one account.');
       }
@@ -241,7 +241,7 @@ export class AuthService {
     const browserFingerprint = metadata?.browserFingerprint as string | undefined;
 
     if (phone) {
-      const existingPhone = await this.prisma.userProfile.findUnique({ where: { phone } });
+      const existingPhone = await this.prisma.userProfile.findFirst({ where: { phone } });
       if (existingPhone) {
         throw new BadRequestException('This phone number is already registered with another account.');
       }

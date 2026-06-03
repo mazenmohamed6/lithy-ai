@@ -228,7 +228,7 @@ export class AntiAbuseService {
     if (recentDeletedAccounts.length >= 2) {
       const now = Date.now();
       const allRecent = recentDeletedAccounts.every(
-        (a) => a.deletedAt && (now - a.deletedAt.getTime()) < 7 * 24 * 60 * 60 * 1000,
+        (a: any) => a.deletedAt && (now - a.deletedAt.getTime()) < 7 * 24 * 60 * 60 * 1000,
       );
 
       if (allRecent) {
@@ -251,7 +251,7 @@ export class AntiAbuseService {
         where: { ledgerId: ledger.id, status: 'ACTIVE', userId: { not: null } },
         select: { userId: true },
       });
-      const activeUserIds = activeAccounts.map((a) => a.userId).filter((uid): uid is string => uid !== null);
+      const activeUserIds = activeAccounts.map((a: any) => a.userId).filter((uid: any): uid is string => uid !== null);
 
       let activeAi = 0;
       let activeAts = 0;
@@ -517,8 +517,8 @@ export class AntiAbuseService {
     });
 
     const activeUserIds = activeAccounts
-      .map((a) => a.userId)
-      .filter((uid): uid is string => uid !== null && uid !== userId);
+      .map((a: any) => a.userId)
+      .filter((uid: any): uid is string => uid !== null && uid !== userId);
 
     let activeAiGenerations = 0;
     let activeAtsScans = 0;
@@ -555,8 +555,8 @@ export class AntiAbuseService {
     let score = 0;
 
     // Multiple linked accounts (same identity)
-    const activeCount = linkedAccounts.filter((a) => a.status === 'ACTIVE').length;
-    const deletedCount = linkedAccounts.filter((a) => a.status === 'DELETED').length;
+    const activeCount = linkedAccounts.filter((a: any) => a.status === 'ACTIVE').length;
+    const deletedCount = linkedAccounts.filter((a: any) => a.status === 'DELETED').length;
 
     if (activeCount + deletedCount > 3) score += 25;
     else if (activeCount + deletedCount > 1) score += 10;
@@ -586,13 +586,13 @@ export class AntiAbuseService {
     });
 
     const recentAccountCreations = events.filter(
-      (e) => e.eventType === 'ACCOUNT_CREATED' &&
+      (e: any) => e.eventType === 'ACCOUNT_CREATED' &&
         e.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000),
     ).length;
     if (recentAccountCreations > 2) score += 15;
 
     const recentDeletions = events.filter(
-      (e) => e.eventType === 'ACCOUNT_DELETED' &&
+      (e: any) => e.eventType === 'ACCOUNT_DELETED' &&
         e.createdAt > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     ).length;
     if (recentDeletions > 2) score += 20;
