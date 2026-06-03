@@ -71,6 +71,16 @@ export class ResumesController {
     res.send(html);
   }
 
+  @Get(':id/download-pdf')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Download resume as PDF' })
+  async downloadPdf(@Param('id') id: string, @CurrentUser() user: any, @Res() res: Response) {
+    const pdf = await this.resumesService.exportPdf(id, user.id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
+    res.send(pdf);
+  }
+
   @Post(':id/toggle-public')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Toggle resume public visibility' })
@@ -83,5 +93,15 @@ export class ResumesController {
   @ApiOperation({ summary: 'Duplicate resume' })
   async duplicate(@Param('id') id: string, @CurrentUser() user: any) {
     return this.resumesService.duplicate(id, user.id);
+  }
+
+  @Post('extract-text')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Extract text from file without creating resume' })
+  @ApiConsumes('multipart/form-data')
+  async extractText(@UploadedFile() file: any) {
+    const text = await this.resumesService.extractFileText(file);
+    return { text };
   }
 }

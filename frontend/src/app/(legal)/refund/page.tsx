@@ -5,8 +5,8 @@ export default function RefundPage() {
         <h1 className="text-3xl font-bold mb-6">Refund Policy</h1>
         <p className="text-muted-foreground mb-4">Last updated: January 2026</p>
         <div className="prose prose-gray max-w-none space-y-4">
-          <h2 className="text-xl font-semibold mt-6">7-Day Trial</h2>
-          <p>All paid plans include a 7-day free trial. You will not be charged until the trial period ends.</p>
+          <h2 className="text-xl font-semibold mt-6">7-Day Free Trial</h2>
+          <p>All paid plans include a 7-day free trial. A credit card is required to start. You will not be charged until the trial period ends. You can cancel anytime during the trial.</p>
           <h2 className="text-xl font-semibold mt-6">Subscription Refunds</h2>
           <p>If you cancel within the first 7 days of a paid subscription, you are eligible for a full refund. After 7 days, no refunds are issued for the current billing period.</p>
           <h2 className="text-xl font-semibold mt-6">Add-On Packs</h2>

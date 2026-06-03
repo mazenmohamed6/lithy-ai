@@ -32,18 +32,15 @@ export class PaymentsService {
       cancel_url: cancelUrl,
       metadata: { userId },
       payment_method_collection: 'always',
+      subscription_data: {
+        trial_period_days: trialDays,
+      },
     };
 
     if (subscription?.stripeCustomerId) {
       sessionParams.customer = subscription.stripeCustomerId;
-      sessionParams.subscription_data = {
-        trial_period_days: trialDays,
-      };
     } else {
       sessionParams.customer_email = user.email;
-      sessionParams.subscription_data = {
-        trial_period_days: trialDays,
-      };
     }
 
     const session = await this.stripe.checkout.sessions.create(sessionParams);

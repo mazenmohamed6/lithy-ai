@@ -51,6 +51,28 @@ async function main() {
       sortOrder: 2,
     },
     {
+      id: 'plan_pro_annual',
+      name: 'PRO_ANNUAL',
+      description: 'Professional resume building - annual (20% off)',
+      priceEgp: 720,
+      interval: 'year',
+      stripePriceId: 'price_1Te5TaEqFdud3sNVAbKKpNsv',
+      features: JSON.stringify({
+        maxResumes: 10,
+        aiGenerations: 10,
+        atsScans: 5,
+        jobMatches: 5,
+        linkedinOptimizer: false,
+        coverLetters: true,
+        templates: 'premium',
+        pdfExport: true,
+        pdfBranding: false,
+        analytics: false,
+        prioritySupport: false,
+      }),
+      sortOrder: 3,
+    },
+    {
       id: 'plan_premium',
       name: 'PREMIUM',
       description: 'Unlimited AI-powered career tools',
@@ -69,40 +91,6 @@ async function main() {
         pdfBranding: false,
         analytics: true,
         prioritySupport: true,
-      }),
-      sortOrder: 3,
-    },
-  ];
-
-  for (const plan of plans) {
-    await prisma.subscriptionPlan.upsert({
-      where: { name: plan.name },
-      create: plan,
-      update: plan,
-    });
-  }
-
-  // Annual plans
-  const annualPlans = [
-    {
-      id: 'plan_pro_annual',
-      name: 'PRO_ANNUAL',
-      description: 'Professional resume building - annual (20% off)',
-      priceEgp: 720,
-      interval: 'year',
-      stripePriceId: 'price_1Td50mEqFdud3sNVtHwFwBKT',
-      features: JSON.stringify({
-        maxResumes: 10,
-        aiGenerations: 10,
-        atsScans: 5,
-        jobMatches: 5,
-        linkedinOptimizer: false,
-        coverLetters: true,
-        templates: 'premium',
-        pdfExport: true,
-        pdfBranding: false,
-        analytics: false,
-        prioritySupport: false,
       }),
       sortOrder: 4,
     },
@@ -130,7 +118,7 @@ async function main() {
     },
   ];
 
-  for (const plan of annualPlans) {
+  for (const plan of plans) {
     await prisma.subscriptionPlan.upsert({
       where: { name: plan.name },
       create: plan,

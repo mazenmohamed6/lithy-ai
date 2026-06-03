@@ -9,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, User, Shield, Bell, CreditCard, LogOut } from "lucide-react";
+import { Loader2, User, Shield, Bell, CreditCard, LogOut, Globe } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, signOut } = useSupabase();
+  const { locale, setLocale, t } = useI18n();
   const [profile, setProfile] = useState<any>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -88,15 +90,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container py-8 max-w-3xl">
-      <h1 className="text-3xl font-bold mb-8">Settings</h1>
+    <div className={`container py-8 max-w-3xl ${locale === "ar" ? "text-right" : ""}`}>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">{locale === "ar" ? "الإعدادات" : "Settings"}</h1>
+        <button
+          onClick={() => setLocale(locale === "en" ? "ar" : "en")}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border bg-background hover:bg-accent transition-colors"
+        >
+          <Globe className="size-3.5" />
+          <span>{locale === "en" ? "AR" : "EN"}</span>
+        </button>
+      </div>
 
       <Tabs defaultValue="profile">
-        <TabsList className="mb-8">
-          <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" /> Profile</TabsTrigger>
-          <TabsTrigger value="security"><Shield className="mr-2 h-4 w-4" /> Security</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="mr-2 h-4 w-4" /> Notifications</TabsTrigger>
-          <TabsTrigger value="billing"><CreditCard className="mr-2 h-4 w-4" /> Billing</TabsTrigger>
+        <TabsList className={`mb-8 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+          <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" /> {locale === "ar" ? "الملف الشخصي" : "Profile"}</TabsTrigger>
+          <TabsTrigger value="security"><Shield className="mr-2 h-4 w-4" /> {locale === "ar" ? "الأمان" : "Security"}</TabsTrigger>
+          <TabsTrigger value="notifications"><Bell className="mr-2 h-4 w-4" /> {locale === "ar" ? "الإشعارات" : "Notifications"}</TabsTrigger>
+          <TabsTrigger value="billing"><CreditCard className="mr-2 h-4 w-4" /> {locale === "ar" ? "الفواتير" : "Billing"}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -194,7 +205,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="billing">
+          <TabsContent value="billing">
           <Card>
             <CardHeader>
               <CardTitle>Billing & Subscription</CardTitle>
@@ -206,6 +217,18 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Card className="mt-6">
+        <CardContent className="flex items-center justify-between p-6">
+          <div>
+            <p className="font-medium">{locale === "ar" ? "تسجيل الخروج" : "Sign Out"}</p>
+            <p className="text-sm text-muted-foreground">{locale === "ar" ? "تسجيل الخروج من حسابك" : "Sign out of your account"}</p>
+          </div>
+          <Button variant="outline" onClick={() => { signOut(); window.location.href = "/"; }}>
+            <LogOut className="mr-2 h-4 w-4" /> {locale === "ar" ? "تسجيل الخروج" : "Log Out"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

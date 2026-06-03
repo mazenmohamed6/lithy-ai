@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import mammoth from 'mammoth';
-const pdfParse: any = require('pdf-parse');
+const PDFDocument = require('pdfkit');
+const pdfjsLib = require('pdfjs-dist');
 
 @Injectable()
 export class ResumesService {
@@ -155,36 +156,54 @@ export class ResumesService {
     return { message: 'Resume deleted' };
   }
 
-  async createFromUpload(userId: string, userEmail: string, file: any) {
+  private async extractTextFromFile(file: any): Promise<string> {
     if (!file) throw new BadRequestException('No file provided');
-    if (!file.originalname.match(/\.(pdf|docx|doc|txt)$/i)) {
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!ext.match(/\.(pdf|docx|doc|txt)$/i)) {
       throw new BadRequestException('Only PDF, DOCX, and TXT files are supported');
     }
 
-    const ext = path.extname(file.originalname).toLowerCase();
-    let textContent = '';
-
     try {
       if (ext === '.txt') {
-        textContent = file.buffer.toString('utf-8');
+        return file.buffer.toString('utf-8').trim().substring(0, 25000);
       } else if (ext === '.pdf') {
-        const data = await pdfParse(file.buffer);
-        textContent = data.text || '';
+        const data = new Uint8Array(file.buffer);
+        const fontUrl = path.join(__dirname, '..', '..', '..', 'node_modules', 'pdfjs-dist', 'standard_fonts') + '/';
+        const doc = await pdfjsLib.getDocument({ data, standardFontDataUrl: fontUrl }).promise;
+        const pages: string[] = [];
+        for (let i = 1; i <= doc.numPages; i++) {
+          const page = await doc.getPage(i);
+          const content = await page.getTextContent();
+          const text = content.items.map((item: any) => item.str).join(' ');
+          pages.push(text);
+        }
+        await doc.destroy();
+        return pages.join('\n\n').trim().substring(0, 25000);
       } else if (ext === '.docx' || ext === '.doc') {
         const result = await mammoth.extractRawText({ buffer: file.buffer });
-        textContent = result.value || '';
+        return (result.value || '').trim().substring(0, 25000);
       }
     } catch (err) {
-      textContent = `[Could not extract text from ${file.originalname}]`;
+      this.logger.warn(`Text extraction failed for ${file.originalname}: ${err}`);
     }
 
-    textContent = textContent.trim().substring(0, 10000);
+    return '';
+  }
+
+  async extractFileText(file: any): Promise<string> {
+    return this.extractTextFromFile(file);
+  }
+
+  async createFromUpload(userId: string, userEmail: string, file: any) {
+    const textContent = await this.extractTextFromFile(file);
 
     await this.ensureUserExists(userId, userEmail);
 
     const sections = [
       { id: 'contact', type: 'contact', title: 'Contact', enabled: true, fields: { fullName: file.originalname.replace(/\.[^/.]+$/, '') } },
-      { id: 'summary', type: 'summary', title: 'Professional Summary', enabled: true, content: textContent.substring(0, 2000) },
+      { id: 'summary', type: 'summary', title: 'Professional Summary', enabled: true, content: textContent },
       { id: 'experience', type: 'experience', title: 'Experience', enabled: true, items: [] },
       { id: 'education', type: 'education', title: 'Education', enabled: true, items: [] },
       { id: 'skills', type: 'skills', title: 'Skills', enabled: true, items: [] },
@@ -235,6 +254,86 @@ export class ResumesService {
   <div class="contact">${[contact.email, contact.phone, contact.location].filter(Boolean).join(' | ')}</div>
   ${sectionHtml}
 </body></html>`;
+  }
+
+  async exportPdf(id: string, userId: string): Promise<Buffer> {
+    const resume = await this.findById(id, userId);
+    const sections = resume.sections as any[];
+    const contact = sections.find((s) => s.id === 'contact')?.fields || {};
+
+    const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
+
+    const buffers: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => buffers.push(chunk));
+
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+    // Header
+    doc.fontSize(22).font('Helvetica-Bold').text(contact.fullName || resume.title, { align: 'center' });
+    const contactLine = [contact.email, contact.phone, contact.location].filter(Boolean).join(' | ');
+    if (contactLine) {
+      doc.fontSize(10).font('Helvetica').fillColor('#555')
+        .text(contactLine, { align: 'center' });
+    }
+
+    doc.moveDown(0.5);
+
+    sections.filter((s) => s.id !== 'contact' && s.enabled !== false).forEach((section) => {
+      // Section title
+      doc.moveDown(0.3);
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#111')
+        .text(section.title, { continued: false });
+      doc.moveDown(0.15);
+      // Underline
+      const y = doc.y;
+      doc.moveTo(doc.page.margins.left, y)
+        .lineTo(doc.page.margins.left + pageWidth, y)
+        .strokeColor('#333')
+        .lineWidth(1)
+        .stroke();
+      doc.moveDown(0.4);
+
+      if (section.id === 'summary') {
+        if (section.content) {
+          doc.fontSize(10).font('Helvetica').fillColor('#333')
+            .text(section.content, { align: 'left' });
+        }
+      } else if (section.id === 'skills') {
+        if (section.items?.length) {
+          const skills = section.items.join('  •  ');
+          doc.fontSize(10).font('Helvetica').fillColor('#333')
+            .text(skills, { align: 'left' });
+        }
+      } else if (section.items?.length) {
+        section.items.forEach((item: any) => {
+          const dateStr = [item.startDate, item.current ? 'Present' : item.endDate].filter(Boolean).join(' - ');
+          doc.fontSize(10).font('Helvetica').fillColor('#333')
+            .text(item.title || item.degree || '', { continued: true });
+          if (dateStr) {
+            doc.fontSize(10).font('Helvetica').fillColor('#666')
+              .text(`    ${dateStr}`, { align: 'right' });
+          } else {
+            doc.moveDown(0.2);
+          }
+
+          const subtitle = item.company || item.institution || '';
+          if (subtitle) {
+            doc.fontSize(10).font('Helvetica').fillColor('#555').text(subtitle);
+          }
+
+          if (item.description) {
+            doc.fontSize(9).font('Helvetica').fillColor('#444').text(item.description);
+            doc.moveDown(0.2);
+          }
+        });
+      }
+    });
+
+    return new Promise((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
+      doc.end();
+    });
   }
 
   async togglePublic(id: string, userId: string) {

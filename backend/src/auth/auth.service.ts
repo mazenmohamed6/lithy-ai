@@ -33,7 +33,7 @@ export class AuthService {
     const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false,
+      email_confirm: true,
       user_metadata: { ...metadata, phone },
     });
 
@@ -74,7 +74,6 @@ export class AuthService {
           userId,
           planId,
           status: 'INCOMPLETE',
-          trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         },
       });
 
@@ -82,8 +81,7 @@ export class AuthService {
         user: data.user,
         planName: selectedPlan.toUpperCase(),
         requiresPayment: true,
-        requiresVerification: true,
-        message: 'Account created. Please verify your email and add a payment method to start your trial.',
+        message: 'Account created. Complete payment to activate your plan.',
       };
     }
 
@@ -95,7 +93,7 @@ export class AuthService {
       },
     });
 
-    return { user: data.user, requiresVerification: true, message: 'Account created. Please check your email to verify your account.' };
+    return { user: data.user, message: 'Account created successfully!' };
   }
 
   async signIn(email: string, password: string) {

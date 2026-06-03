@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,8 @@ export default function BillingPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [annual, setAnnual] = useState(subscription?.plan?.interval === "year");
+  const searchParams = useSearchParams();
+  const planParam = searchParams.get("plan");
 
   useEffect(() => {
     if (!user) return;
@@ -29,6 +32,15 @@ export default function BillingPage() {
       setIsLoading(false);
     });
   }, [user]);
+
+  useEffect(() => {
+    if (isLoading || !planParam) return;
+    const planName = planParam.toUpperCase();
+    const targetPlan = plans.find((p) => p.name === planName);
+    if (targetPlan && targetPlan.stripePriceId && targetPlan.priceEgp > 0) {
+      handleCheckout(targetPlan);
+    }
+  }, [isLoading, planParam, plans]);
 
   const handleManageBilling = async () => {
     try {

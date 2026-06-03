@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 interface ResumeUploadProps {
   onResumeText: (text: string) => void;
@@ -21,23 +22,21 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
     setIsParsing(true);
 
     try {
-      const buffer = await file.arrayBuffer();
-      let content = "";
-
       if (file.name.endsWith(".txt")) {
-        content = new TextDecoder("utf-8").decode(buffer);
+        const buffer = await file.arrayBuffer();
+        const content = new TextDecoder("utf-8").decode(buffer);
+        setText(content);
+        onResumeText(content);
       } else {
-        content = `[Uploaded: ${file.name} — ${(file.size / 1024).toFixed(1)}KB]`;
-        const textFromBuffer = new TextDecoder("utf-8").decode(buffer.slice(0, 10000));
-        const cleaned = textFromBuffer.replace(/[^\x20-\x7E\n\r]/g, "").trim();
-        if (cleaned.length > 50) content = cleaned;
+        const formData = new FormData();
+        formData.append("file", file);
+        const { text: extracted } = await api.upload("/resumes/extract-text", formData);
+        setText(extracted);
+        onResumeText(extracted);
       }
-
-      setText(content);
-      onResumeText(content);
     } catch {
-      setText(`[Uploaded file: ${file.name}]`);
-      onResumeText(`[Uploaded file: ${file.name}]`);
+      setText(`[Could not extract text from ${file.name}. Please paste content manually.]`);
+      onResumeText(`[Could not extract text from ${file.name}. Please paste content manually.]`);
     } finally {
       setIsParsing(false);
     }

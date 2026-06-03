@@ -24,6 +24,7 @@ export default function ResumeEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("contact");
   const [previewMode, setPreviewMode] = useState(false);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const isNew = params.id === "new";
 
   useEffect(() => {
@@ -106,8 +107,8 @@ export default function ResumeEditorPage() {
           <Button variant="ghost" onClick={() => setPreviewMode(false)}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
           </Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Download className="mr-2 h-4 w-4" /> Save as PDF (Ctrl+P)
+          <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)}>
+            <Download className="mr-2 h-4 w-4" /> Save as PDF
           </Button>
         </div>
         <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
@@ -116,8 +117,6 @@ export default function ResumeEditorPage() {
       </div>
     );
   }
-
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
@@ -183,7 +182,7 @@ export default function ResumeEditorPage() {
                 <Eye className="mr-2 h-4 w-4" /> Preview
               </Button>
               {!isNew && (
-                <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download`)}>
+                <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)}>
                   <Download className="mr-2 h-4 w-4" /> Download
                 </Button>
               )}
