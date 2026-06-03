@@ -35,7 +35,7 @@ export class ResumesController {
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create new resume' })
   async create(@CurrentUser() user: any, @Body() body: { title?: string; templateId?: string }) {
-    return this.resumesService.create(user.id, body);
+    return this.resumesService.create(user.id, user.email, body);
   }
 
   @Put(':id')
@@ -58,7 +58,7 @@ export class ResumesController {
   @ApiOperation({ summary: 'Upload resume file from device' })
   @ApiConsumes('multipart/form-data')
   async upload(@CurrentUser() user: any, @UploadedFile() file: any) {
-    return this.resumesService.createFromUpload(user.id, file);
+    return this.resumesService.createFromUpload(user.id, user.email, file);
   }
 
   @Get(':id/download')

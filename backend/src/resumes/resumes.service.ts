@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -8,11 +8,35 @@ const pdfParse: any = require('pdf-parse');
 
 @Injectable()
 export class ResumesService {
+  private readonly logger = new Logger(ResumesService.name);
   private uploadDir: string;
 
   constructor(private prisma: PrismaService) {
     this.uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
     try { if (!fs.existsSync(this.uploadDir)) fs.mkdirSync(this.uploadDir, { recursive: true }); } catch {}
+  }
+
+  private async ensureUserExists(userId: string, email?: string) {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (existing) return;
+
+    await this.prisma.user.create({
+      data: { id: userId, email: email || `${userId}@lithy.ai` },
+    });
+
+    const freePlan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: 'FREE', isActive: true },
+    });
+
+    await this.prisma.userSubscription.create({
+      data: {
+        userId,
+        planId: freePlan?.id || 'plan_free',
+        status: 'ACTIVE',
+      },
+    });
+
+    this.logger.warn(`Auto-created missing Prisma user: ${userId}`);
   }
 
   async findAll(userId: string) {
@@ -52,7 +76,8 @@ export class ResumesService {
     return resume;
   }
 
-  async create(userId: string, data: { title?: string; templateId?: string }) {
+  async create(userId: string, userEmail: string, data: { title?: string; templateId?: string }) {
+    await this.ensureUserExists(userId, userEmail);
     const resumeCount = await this.prisma.resume.count({ where: { userId } });
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
     const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
@@ -122,7 +147,7 @@ export class ResumesService {
     return { message: 'Resume deleted' };
   }
 
-  async createFromUpload(userId: string, file: any) {
+  async createFromUpload(userId: string, userEmail: string, file: any) {
     if (!file) throw new BadRequestException('No file provided');
     if (!file.originalname.match(/\.(pdf|docx|doc|txt)$/i)) {
       throw new BadRequestException('Only PDF, DOCX, and TXT files are supported');
@@ -146,6 +171,8 @@ export class ResumesService {
     }
 
     textContent = textContent.trim().substring(0, 10000);
+
+    await this.ensureUserExists(userId, userEmail);
 
     const sections = [
       { id: 'contact', type: 'contact', title: 'Contact', enabled: true, fields: { fullName: file.originalname.replace(/\.[^/.]+$/, '') } },
