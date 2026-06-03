@@ -198,6 +198,9 @@ export default function SettingsPage() {
               <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
                 {isUpdatingPassword ? "Updating..." : "Update Password"}
               </Button>
+              <div className="pt-6 border-t">
+                <Button variant="destructive" onClick={handleDeleteAccount}>{locale === "ar" ? "حذف الحساب" : "Delete Account"}</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
