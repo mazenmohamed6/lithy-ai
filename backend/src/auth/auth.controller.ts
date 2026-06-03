@@ -4,17 +4,36 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { PaymentsService } from '../payments/payments.service';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Authentication')
 @Controller('api/v1/auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private paymentsService: PaymentsService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('signup')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user' })
-  async signUp(@Body() body: { email: string; password: string; metadata?: any }) {
-    return this.authService.signUp(body.email, body.password, body.metadata);
+  async signUp(@Body() body: { email: string; password: string; phone?: string; metadata?: any }) {
+    const result = await this.authService.signUp(body.email, body.password, body.phone, body.metadata);
+
+    if (result.requiresPayment && result.planName) {
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || process.env.FRONTEND_URL || 'https://lithy-ai.vercel.app';
+      const checkout = await this.paymentsService.createCheckoutSessionForPlan(
+        result.user.id,
+        result.planName,
+        `${frontendUrl}/dashboard?checkout=success`,
+        `${frontendUrl}/signup?plan=${body.metadata?.selectedPlan || result.planName.toLowerCase()}`,
+      );
+      return { ...result, checkoutUrl: checkout.url };
+    }
+
+    return result;
   }
 
   @Post('signin')

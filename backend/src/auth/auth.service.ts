@@ -21,12 +21,20 @@ export class AuthService {
     this.supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
   }
 
-  async signUp(email: string, password: string, metadata?: Record<string, any>) {
+  async signUp(email: string, password: string, phone?: string, metadata?: Record<string, any>) {
+    if (password.length < 8 || password.length > 128) {
+      throw new BadRequestException('Password must be between 8 and 128 characters');
+    }
+    if (!/[a-z]/.test(password)) throw new BadRequestException('Password must contain a lowercase letter');
+    if (!/[A-Z]/.test(password)) throw new BadRequestException('Password must contain an uppercase letter');
+    if (!/\d/.test(password)) throw new BadRequestException('Password must contain a digit');
+    if (!/[^a-zA-Z0-9]/.test(password)) throw new BadRequestException('Password must contain a special character');
+
     const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
-      user_metadata: metadata,
+      email_confirm: false,
+      user_metadata: { ...metadata, phone },
     });
 
     if (error) throw new BadRequestException(error.message);
@@ -40,6 +48,14 @@ export class AuthService {
       },
     });
 
+    if (phone) {
+      await this.prisma.userProfile.upsert({
+        where: { userId },
+        create: { userId, phone },
+        update: { phone },
+      });
+    }
+
     const selectedPlan = metadata?.selectedPlan || 'free';
     const plan = await this.prisma.subscriptionPlan.findFirst({
       where: { name: selectedPlan.toUpperCase() as any, isActive: true },
@@ -47,23 +63,34 @@ export class AuthService {
     const planId = plan?.id || 'plan_free';
     const isPaid = selectedPlan !== 'free';
 
+    if (isPaid) {
+      await this.prisma.userSubscription.create({
+        data: {
+          userId,
+          planId,
+          status: 'INCOMPLETE',
+          trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      return {
+        user: data.user,
+        planName: selectedPlan.toUpperCase(),
+        requiresPayment: true,
+        requiresVerification: true,
+        message: 'Account created. Please verify your email and add a payment method to start your trial.',
+      };
+    }
+
     await this.prisma.userSubscription.create({
       data: {
         userId,
         planId,
-        status: isPaid ? 'TRIALING' : 'ACTIVE',
-        trialEnd: isPaid ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined,
+        status: 'ACTIVE',
       },
     });
 
-    if (isPaid) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { role: 'PRO' },
-      });
-    }
-
-    return { user: data.user, message: 'Account created successfully' };
+    return { user: data.user, requiresVerification: true, message: 'Account created. Please check your email to verify your account.' };
   }
 
   async signIn(email: string, password: string) {

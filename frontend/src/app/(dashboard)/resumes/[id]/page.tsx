@@ -10,7 +10,8 @@ import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
 import { RESUME_SECTIONS, RESUME_TEMPLATES } from "@/lib/constants";
 import { toast } from "sonner";
-import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function ResumeEditorPage() {
   const params = useParams();
@@ -116,9 +117,15 @@ export default function ResumeEditorPage() {
     );
   }
 
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+
   return (
     <div className="flex h-[calc(100vh-4rem)]">
-      <div className="w-80 border-r bg-muted/30 p-4 overflow-y-auto space-y-4">
+      <div className={cn(
+        "w-80 border-r bg-muted/30 p-4 overflow-y-auto space-y-4 transition-all duration-200",
+        "hidden md:block",
+        leftPanelOpen ? "md:w-80" : "md:w-0 md:p-0 md:overflow-hidden",
+      )}>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} className="font-semibold" />
@@ -131,7 +138,7 @@ export default function ResumeEditorPage() {
               <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
               <span className="flex-1 text-sm">{section.title}</span>
               {!["contact", "summary", "experience", "education", "skills"].includes(section.id) && (
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeSection(section.id)}>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); removeSection(section.id); }}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               )}
@@ -162,10 +169,15 @@ export default function ResumeEditorPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">{sections.find((s) => s.id === activeSection)?.title || "Edit Section"}</h2>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setLeftPanelOpen(!leftPanelOpen)}>
+                <Menu className="h-4 w-4" />
+              </Button>
+              <h2 className="text-lg md:text-xl font-semibold truncate">{sections.find((s) => s.id === activeSection)?.title || "Edit Section"}</h2>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setPreviewMode(true)}>
                 <Eye className="mr-2 h-4 w-4" /> Preview

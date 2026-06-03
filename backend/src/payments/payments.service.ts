@@ -17,7 +17,7 @@ export class PaymentsService {
     });
   }
 
-  async createCheckoutSession(userId: string, priceId: string, successUrl: string, cancelUrl: string) {
+  async createCheckoutSession(userId: string, priceId: string, successUrl: string, cancelUrl: string, trialDays: number = 7) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
 
@@ -31,18 +31,34 @@ export class PaymentsService {
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: { userId },
+      payment_method_collection: 'always',
     };
 
     if (subscription?.stripeCustomerId) {
       sessionParams.customer = subscription.stripeCustomerId;
+      sessionParams.subscription_data = {
+        trial_period_days: trialDays,
+      };
     } else {
       sessionParams.customer_email = user.email;
-      sessionParams.subscription_data = { trial_period_days: 7 };
+      sessionParams.subscription_data = {
+        trial_period_days: trialDays,
+      };
     }
 
     const session = await this.stripe.checkout.sessions.create(sessionParams);
 
     return { url: session.url, sessionId: session.id };
+  }
+
+  async createCheckoutSessionForPlan(userId: string, planName: string, successUrl: string, cancelUrl: string) {
+    const plan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: planName as any, isActive: true },
+    });
+    if (!plan?.stripePriceId) {
+      throw new BadRequestException(`No Stripe price configured for ${planName}`);
+    }
+    return this.createCheckoutSession(userId, plan.stripePriceId, successUrl, cancelUrl, 7);
   }
 
   async createAddonCheckoutSession(userId: string, packId: string, successUrl: string, cancelUrl: string) {
@@ -121,9 +137,9 @@ export class PaymentsService {
     if (!userId) return;
 
     if (session.mode === 'subscription') {
-      const subscription = await this.stripe.subscriptions.retrieve(session.subscription as string);
+      const stripeSub = await this.stripe.subscriptions.retrieve(session.subscription as string);
 
-      const stripePriceId = subscription.items.data[0]?.price?.id;
+      const stripePriceId = stripeSub.items.data[0]?.price?.id;
       const plan = stripePriceId
         ? await this.prisma.subscriptionPlan.findFirst({ where: { stripePriceId } })
         : null;
@@ -131,28 +147,34 @@ export class PaymentsService {
       const planId = plan?.id || 'plan_pro';
       const planName = plan?.name || 'PRO';
 
+      const status = stripeSub.status === 'trialing' ? 'TRIALING'
+        : stripeSub.status === 'active' ? 'ACTIVE'
+        : 'ACTIVE';
+
       await this.prisma.userSubscription.upsert({
         where: { userId },
         create: {
           userId,
           planId,
-          status: 'ACTIVE',
-          stripeSubscriptionId: subscription.id,
+          status: status as any,
+          stripeSubscriptionId: stripeSub.id,
           stripeCustomerId: session.customer as string,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
         },
         update: {
-          status: 'ACTIVE',
+          status: status as any,
           planId,
-          stripeSubscriptionId: subscription.id,
+          stripeSubscriptionId: stripeSub.id,
           stripeCustomerId: session.customer as string,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
         },
       });
 
-      await this.updateUserRole(userId, planName);
+      if (!planName.startsWith('FREE')) {
+        await this.updateUserRole(userId, planName);
+      }
     } else if (session.mode === 'payment' && session.metadata?.packId) {
       await this.handleAddonPurchase(session);
       await this.prisma.payment.create({
@@ -219,21 +241,41 @@ export class PaymentsService {
   }
 
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-    await this.prisma.userSubscription.update({
+    const userSub = await this.prisma.userSubscription.findUnique({
       where: { stripeSubscriptionId: subscription.id },
-      data: { status: 'CANCELED' },
+    });
+    if (!userSub) return;
+
+    const freePlan = await this.prisma.subscriptionPlan.findFirst({ where: { name: 'FREE' as any } });
+    const freePlanId = freePlan?.id || 'plan_free';
+
+    await this.prisma.userSubscription.update({
+      where: { id: userSub.id },
+      data: { status: 'CANCELED', planId: freePlanId },
+    });
+
+    await this.prisma.user.update({
+      where: { id: userSub.userId },
+      data: { role: 'USER' },
     });
   }
 
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+    const isCanceledOrPastDue = subscription.status === 'canceled' || subscription.status === 'past_due' || subscription.status === 'incomplete_expired';
+
+    const freePlan = isCanceledOrPastDue
+      ? await this.prisma.subscriptionPlan.findFirst({ where: { name: 'FREE' as any } })
+      : null;
+
     const status = subscription.status === 'active' ? 'ACTIVE'
       : subscription.status === 'past_due' ? 'PAST_DUE'
       : subscription.status === 'canceled' ? 'CANCELED'
       : subscription.status === 'trialing' ? 'TRIALING'
+      : subscription.status === 'incomplete' ? 'INCOMPLETE'
       : 'EXPIRED';
 
     const stripePriceId = subscription.items.data[0]?.price?.id;
-    const plan = stripePriceId
+    const plan = !isCanceledOrPastDue && stripePriceId
       ? await this.prisma.subscriptionPlan.findFirst({ where: { stripePriceId } })
       : null;
 
@@ -241,19 +283,29 @@ export class PaymentsService {
       where: { stripeSubscriptionId: subscription.id },
       data: {
         status: status as any,
-        planId: plan?.id || undefined,
+        planId: freePlan?.id || plan?.id || undefined,
         currentPeriodStart: new Date(subscription.current_period_start * 1000),
         currentPeriodEnd: new Date(subscription.current_period_end * 1000),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
       },
     });
 
-    if (plan) {
+    if (plan && !isCanceledOrPastDue) {
       const userSub = await this.prisma.userSubscription.findUnique({
         where: { stripeSubscriptionId: subscription.id },
       });
       if (userSub) {
         await this.updateUserRole(userSub.userId, plan.name);
+      }
+    } else if (isCanceledOrPastDue) {
+      const userSub = await this.prisma.userSubscription.findUnique({
+        where: { stripeSubscriptionId: subscription.id },
+      });
+      if (userSub) {
+        await this.prisma.user.update({
+          where: { id: userSub.userId },
+          data: { role: 'USER' },
+        });
       }
     }
   }
