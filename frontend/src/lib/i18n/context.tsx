@@ -296,6 +296,9 @@ const en = {
     password: "Password",
     confirmPassword: "Confirm Password",
     phone: "Phone (optional)",
+    signInWithGoogle: "Continue with Google",
+    signUpWithGoogle: "Sign up with Google",
+    orEmail: "Or use email",
   },
 };
 
@@ -534,5 +537,8 @@ const ar: typeof en = {
     password: "كلمة المرور",
     confirmPassword: "تأكيد كلمة المرور",
     phone: "رقم الهاتف (اختياري)",
+    signInWithGoogle: "المتابعة عبر Google",
+    signUpWithGoogle: "التسجيل عبر Google",
+    orEmail: "أو استخدم البريد الإلكتروني",
   },
 };
