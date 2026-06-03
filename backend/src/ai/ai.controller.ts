@@ -13,36 +13,36 @@ export class AiController {
   @Post('generate-resume')
   @ApiOperation({ summary: 'Generate AI resume content' })
   async generateResume(@CurrentUser() user: any, @Body() body: any) {
-    return this.aiService.generateResume(user.id, body);
+    return this.aiService.generateResume(user.id, user.email, body);
   }
 
   @Post('improve-resume')
   @ApiOperation({ summary: 'Improve existing resume content' })
   async improveResume(@CurrentUser() user: any, @Body() body: any) {
-    return this.aiService.improveResume(user.id, body);
+    return this.aiService.improveResume(user.id, user.email, body);
   }
 
   @Post('cover-letter')
   @ApiOperation({ summary: 'Generate AI cover letter' })
   async generateCoverLetter(@CurrentUser() user: any, @Body() body: any) {
-    return this.aiService.generateCoverLetter(user.id, body);
+    return this.aiService.generateCoverLetter(user.id, user.email, body);
   }
 
   @Post('analyze-ats')
   @ApiOperation({ summary: 'Analyze resume ATS compatibility' })
   async analyzeATS(@CurrentUser() user: any, @Body() body: any) {
-    return this.aiService.analyzeATS(user.id, body);
+    return this.aiService.analyzeATS(user.id, user.email, body);
   }
 
   @Post('analyze-job-match')
   @ApiOperation({ summary: 'Analyze resume-job match' })
   async analyzeJobMatch(@CurrentUser() user: any, @Body() body: any) {
-    return this.aiService.analyzeJobMatch(user.id, body);
+    return this.aiService.analyzeJobMatch(user.id, user.email, body);
   }
 
   @Post('optimize-linkedin')
   @ApiOperation({ summary: 'Optimize LinkedIn profile' })
   async optimizeLinkedIn(@CurrentUser() user: any, @Body() body: any) {
-    return this.aiService.optimizeLinkedIn(user.id, body);
+    return this.aiService.optimizeLinkedIn(user.id, user.email, body);
   }
 }

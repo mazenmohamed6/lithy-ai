@@ -24,7 +24,31 @@ export class AiService {
     this.model = this.configService.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile';
   }
 
-  async generateResume(userId: string, data: { sections: any[]; tone?: string; keywords?: string; focusArea?: string }) {
+  private async ensureUserExists(userId: string, email?: string) {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (existing) return;
+
+    await this.prisma.user.create({
+      data: { id: userId, email: email || `${userId}@lithy.ai` },
+    });
+
+    const freePlan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: 'FREE', isActive: true },
+    });
+
+    await this.prisma.userSubscription.create({
+      data: {
+        userId,
+        planId: freePlan?.id || 'plan_free',
+        status: 'ACTIVE',
+      },
+    });
+
+    this.logger.warn(`Auto-created missing Prisma user: ${userId}`);
+  }
+
+  async generateResume(userId: string, userEmail: string, data: { sections: any[]; tone?: string; keywords?: string; focusArea?: string }) {
+    await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'RESUME_GENERATION');
 
     try {
@@ -52,7 +76,8 @@ export class AiService {
     }
   }
 
-  async improveResume(userId: string, data: { sections: any[]; instructions: string }) {
+  async improveResume(userId: string, userEmail: string, data: { sections: any[]; instructions: string }) {
+    await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'RESUME_IMPROVEMENT');
 
     try {
@@ -76,7 +101,8 @@ export class AiService {
     }
   }
 
-  async generateCoverLetter(userId: string, data: { resume: any; jobDescription: string; tone?: string; companyName?: string }) {
+  async generateCoverLetter(userId: string, userEmail: string, data: { resume: any; jobDescription: string; tone?: string; companyName?: string }) {
+    await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'COVER_LETTER');
 
     try {
@@ -104,7 +130,8 @@ export class AiService {
     }
   }
 
-  async analyzeATS(userId: string, data: { resume: any; jobDescription: string }) {
+  async analyzeATS(userId: string, userEmail: string, data: { resume: any; jobDescription: string }) {
+    await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'ATS_SCAN');
 
     try {
@@ -137,7 +164,8 @@ export class AiService {
     }
   }
 
-  async analyzeJobMatch(userId: string, data: { resume: any; jobDescription: string }) {
+  async analyzeJobMatch(userId: string, userEmail: string, data: { resume: any; jobDescription: string }) {
+    await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'JOB_MATCH');
 
     try {
@@ -170,7 +198,8 @@ export class AiService {
     }
   }
 
-  async optimizeLinkedIn(userId: string, data: { profile: any }) {
+  async optimizeLinkedIn(userId: string, userEmail: string, data: { profile: any }) {
+    await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'LINKEDIN_OPTIMIZATION');
 
     try {
@@ -272,21 +301,25 @@ export class AiService {
   }
 
   private async recordUsage(userId: string, type: string, usage: any) {
-    const tokens = usage?.total_tokens || 0;
-    const costPerToken = 0.00001; // Approximate GPT-4o cost per token in USD
-    const costUsd = tokens * costPerToken;
+    try {
+      const tokens = usage?.total_tokens || 0;
+      const costPerToken = 0.00001;
+      const costUsd = tokens * costPerToken;
 
-    await this.prisma.aIGeneration.create({
-      data: {
-        userId,
-        type: type as any,
-        promptTokens: usage?.prompt_tokens || 0,
-        completionTokens: usage?.completion_tokens || 0,
-        model: this.model,
-        costEgp: costUsd * 48, // Approximate EGP conversion
-        status: 'completed',
-      },
-    });
+      await this.prisma.aIGeneration.create({
+        data: {
+          userId,
+          type: type as any,
+          promptTokens: usage?.prompt_tokens || 0,
+          completionTokens: usage?.completion_tokens || 0,
+          model: this.model,
+          costEgp: costUsd * 48,
+          status: 'completed',
+        },
+      });
+    } catch (dbError) {
+      this.logger.error(`Failed to record AI usage: ${dbError}`);
+    }
   }
 
   private buildResumeSystemPrompt(tone?: string, keywords?: string, focusArea?: string) {
