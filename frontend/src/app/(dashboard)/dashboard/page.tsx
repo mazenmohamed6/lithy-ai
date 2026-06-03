@@ -4,12 +4,27 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
 import { formatDateRelative } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
-import { FileText, Sparkles, BarChart3, Target, Plus, ArrowRight, Loader2, TrendingUp, CheckCircle, Clock, Lightbulb, GraduationCap } from "lucide-react";
+import { FileText, Sparkles, BarChart3, Target, Plus, ArrowRight, Loader2, TrendingUp, CheckCircle, Clock, Lightbulb, GraduationCap, Award, Zap, Medal, Star, Gift } from "lucide-react";
+
+const badges = [
+  { id: "first-resume", label: "First Resume", icon: FileText, desc: "Created your first resume", condition: (c: number) => c >= 1 },
+  { id: "resume-5", label: "Resume Collector", icon: Award, desc: "Created 5 resumes", condition: (c: number) => c >= 5 },
+  { id: "ats-scanner", label: "ATS Pro", icon: BarChart3, desc: "Scanned 3+ resumes", condition: (_: number, s: number) => s >= 3 },
+  { id: "ai-master", label: "AI Master", icon: Sparkles, desc: "Used AI generation 10+ times", condition: (_: number, __: number, a: number) => a >= 10 },
+  { id: "streak-7", label: "Week Warrior", icon: Medal, desc: "Active for 7 days", condition: () => false },
+  { id: "cover-letter", label: "Cover Letter Pro", icon: FileText, desc: "Generated a cover letter", condition: () => false },
+];
+
+const weeklyGoals = [
+  { id: "create-1", label: "Create a resume", icon: FileText, key: "resumeCreated" as const },
+  { id: "scan-ats", label: "Scan ATS score", icon: BarChart3, key: "atsScanned" as const },
+  { id: "generate-ai", label: "Generate with AI", icon: Sparkles, key: "aiGenerated" as const },
+  { id: "match-job", label: "Check job match", icon: Target, key: "jobMatchChecked" as const },
+];
 
 export default function DashboardPage() {
   const { user } = useSupabase();
@@ -17,6 +32,7 @@ export default function DashboardPage() {
   const [resumes, setResumes] = useState<any[]>([]);
   const [usage, setUsage] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [weeklyProgress, setWeeklyProgress] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -28,7 +44,17 @@ export default function DashboardPage() {
       setUsage(usageData);
       setIsLoading(false);
     });
+    const stored = localStorage.getItem("weeklyGoals");
+    if (stored) setWeeklyProgress(JSON.parse(stored));
   }, [user]);
+
+  const toggleGoal = (id: string) => {
+    setWeeklyProgress((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      localStorage.setItem("weeklyGoals", JSON.stringify(next));
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -68,12 +94,18 @@ export default function DashboardPage() {
     t("dashboard.coach.tip3"),
   ];
 
+  const earnedBadges = badges.filter((b) => b.condition(resumeCount, atsScans, aiGenerations));
+  const lockedBadges = badges.filter((b) => !b.condition(resumeCount, atsScans, aiGenerations));
+
   const quickLinks = [
-    { href: "/resumes/new", label: t("dashboard.createResumeAI"), icon: FileText },
+    { href: "/resumes/new?mode=ai", label: t("dashboard.createResumeAI"), icon: FileText },
     { href: "/ats-scanner", label: t("dashboard.analyzeATS"), icon: BarChart3 },
     { href: "/job-match", label: t("dashboard.checkJobMatch"), icon: Target },
     { href: "/cover-letters", label: t("dashboard.generateCoverLetter"), icon: FileText },
   ];
+
+  const completedGoals = Object.values(weeklyProgress).filter(Boolean).length;
+  const totalGoals = weeklyGoals.length;
 
   return (
     <div className={`container py-8 space-y-8 animate-fade-in ${locale === "ar" ? "text-right" : ""}`}>
@@ -95,7 +127,7 @@ export default function DashboardPage() {
           {[
             { label: t("dashboard.resumeCompletion"), value: `${completionScore}%`, icon: CheckCircle, color: "text-green-500", desc: `${resumeCount} resume${resumeCount !== 1 ? "s" : ""} created` },
             { label: t("dashboard.atsImprovement"), value: `${atsImprovement}%`, icon: TrendingUp, color: "text-blue-500", desc: `${atsScans} scan${atsScans !== 1 ? "s" : ""} performed` },
-            { label: t("dashboard.aiUsage"), value: aiGenerations, icon: Sparkles, color: "text-purple-500", desc: "this month" },
+            { label: t("dashboard.aiUsage"), value: `${aiGenerations}`, icon: Sparkles, color: "text-purple-500", desc: "this month" },
             { label: t("dashboard.subscription"), value: usage.plan || "Free", icon: GraduationCap, color: "text-orange-500", desc: usage.plan === "FREE" ? "Upgrade for more" : "Active" },
           ].map((item) => {
             const Icon = item.icon;
@@ -121,6 +153,81 @@ export default function DashboardPage() {
           <p className="font-medium mb-1">{coachMessages[0]}</p>
           <p className="text-sm text-muted-foreground">{coachMessages[Math.min(1 + (resumeCount % 3), coachMessages.length - 1)]}</p>
         </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Target className="size-4" />
+              {locale === "ar" ? "أهداف الأسبوع" : "Weekly Goals"}
+              <span className="text-xs text-muted-foreground font-normal ml-auto">{completedGoals}/{totalGoals}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {weeklyGoals.map((goal) => {
+              const GoalIcon = goal.icon;
+              const done = weeklyProgress[goal.id];
+              return (
+                <button
+                  key={goal.id}
+                  onClick={() => toggleGoal(goal.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                    done ? "bg-green-500/5 border-green-500/20" : "hover:bg-muted"
+                  }`}
+                >
+                  <div className={`size-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    done ? "bg-green-500 border-green-500" : "border-muted-foreground/30"
+                  }`}>
+                    {done && <CheckCircle className="size-4 text-white" />}
+                  </div>
+                  <GoalIcon className={`size-4 shrink-0 ${done ? "text-green-500" : "text-muted-foreground"}`} />
+                  <span className={`text-sm ${done ? "line-through text-muted-foreground" : ""}`}>{goal.label}</span>
+                </button>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Award className="size-4" />
+              {locale === "ar" ? "الإنجازات" : "Achievements"}
+              <span className="text-xs text-muted-foreground font-normal ml-auto">{earnedBadges.length}/{badges.length}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {earnedBadges.map((badge) => {
+                const BadgeIcon = badge.icon;
+                return (
+                  <div key={badge.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <BadgeIcon className="size-4 text-primary" />
+                    <span className="text-xs font-medium">{badge.label}</span>
+                  </div>
+                );
+              })}
+              {lockedBadges.map((badge) => {
+                const BadgeIcon = badge.icon;
+                return (
+                  <div key={badge.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-dashed opacity-50">
+                    <BadgeIcon className="size-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{badge.label}</span>
+                  </div>
+                );
+              })}
+              {badges.length === 0 && (
+                <p className="text-sm text-muted-foreground">{locale === "ar" ? "أنشئ سيرتك الذاتية الأولى لفتح الإنجازات" : "Create your first resume to unlock achievements"}</p>
+              )}
+            </div>
+            {lockedBadges.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-3">
+                {locale === "ar" ? `الهدف التالي: ${lockedBadges[0].desc}` : `Next milestone: ${lockedBadges[0].desc}`}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
