@@ -9,7 +9,7 @@ type I18nContextType = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   dir: "ltr" | "rtl";
-  t: (key: string) => string;
+  t: <T = string>(key: string) => T;
 };
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -38,14 +38,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const dir = locale === "ar" ? "rtl" : "ltr";
 
-  const t = useCallback((key: string): string => {
+  const t = useCallback(<T = string>(key: string): T => {
     const keys = key.split(".");
     let val: any = locale === "ar" ? ar : en;
     for (const k of keys) {
       if (val && typeof val === "object" && k in val) val = val[k];
-      else return key;
+      else return key as T;
     }
-    return typeof val === "string" ? val : key;
+    return val as T;
   }, [locale]);
 
   return (
