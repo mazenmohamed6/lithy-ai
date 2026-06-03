@@ -167,6 +167,30 @@ const en = {
     subtitle: "Join thousands of Egyptian professionals who built their careers with LITHY AI.",
     button: "Start Building Free — No Credit Card Required",
   },
+  how: {
+    title: "How It Works",
+    subtitle: "Build a professional resume in three simple steps",
+    steps: [
+      { title: "Tell Us About Yourself", desc: "Enter your experience, education, and skills. Or upload an existing resume and let AI extract everything." },
+      { title: "AI Optimizes Your Resume", desc: "Our AI analyzes your content, suggests improvements, and optimizes for ATS systems used by top companies." },
+      { title: "Download & Apply", desc: "Export a professional PDF resume, check your ATS score, and start applying with confidence." },
+    ],
+  },
+  demo: {
+    title: "See LITHY AI in Action",
+    subtitle: "Watch how our AI transforms a basic resume into an ATS-optimized career document in seconds",
+    cta: "Try It Free",
+    stats: "Average ATS score improvement of 67%",
+  },
+  atsEducation: {
+    title: "What is ATS and Why Does It Matter?",
+    subtitle: "Over 75% of large companies use Applicant Tracking Systems to filter resumes before a human ever sees them.",
+    fact1: "75% of resumes are rejected by ATS before reaching a recruiter.",
+    fact2: "Recruiters spend an average of 7.4 seconds scanning a resume.",
+    fact3: "ATS-optimized resumes get 3x more interview callbacks.",
+    fact4: "Only 25% of job seekers tailor their resume for each application.",
+    cta: "Check Your ATS Score Free",
+  },
   quotes: [
     "Every successful career starts with a single application.",
     "Your future employer is looking for someone exactly like you.",
@@ -380,6 +404,30 @@ const ar: typeof en = {
     title: "هل أنت مستعد للحصول على وظيفة أحلامك؟",
     subtitle: "انضم إلى آلاف المحترفين المصريين الذين بنوا مسيرتهم المهنية مع LITHY AI.",
     button: "ابدأ مجاناً — بدون حاجة لبطاقة ائتمان",
+  },
+  how: {
+    title: "كيف يعمل",
+    subtitle: "ابنِ سيرتك الذاتية الاحترافية في ثلاث خطوات بسيطة",
+    steps: [
+      { title: "أخبرنا عن نفسك", desc: "أدخل خبراتك وتعليمك ومهاراتك. أو ارفع سيرة ذاتية موجودة ودع الذكاء الاصطناعي يستخرج كل شيء." },
+      { title: "الذكاء الاصطناعي يحسّن سيرتك", desc: "يحلل الذكاء الاصطناعي محتواك، ويقترح تحسينات، ويحسّنها لأنظمة ATS المستخدمة من قبل كبرى الشركات." },
+      { title: "حمّل وتقدّم", desc: "صدر سيرة ذاتية احترافية بصيغة PDF، وافحص درجة ATS، وابدأ التقديم بثقة." },
+    ],
+  },
+  demo: {
+    title: "شاهد LITHY AI في العمل",
+    subtitle: "شاهد كيف يحوّل الذكاء الاصطناعي سيرة ذاتية بسيطة إلى وثيقة مهنية متوافقة مع ATS في ثوانٍ",
+    cta: "جربها مجاناً",
+    stats: "متوسط تحسن درجة ATS بنسبة ٦٧٪",
+  },
+  atsEducation: {
+    title: "ما هو ATS ولماذا يهمك؟",
+    subtitle: "أكثر من ٧٥٪ من الشركات الكبرى تستخدم أنظمة تتبع المتقدمين لفلترة السير الذاتية قبل أن يراها البشر.",
+    fact1: "٧٥٪ من السير الذاتية تُرفض بواسطة ATS قبل وصولها لمسؤول التوظيف.",
+    fact2: "مسؤولو التوظيف يقضون متوسط ٧.٤ ثانية فقط في مسح السيرة الذاتية.",
+    fact3: "السير الذاتية المتوافقة مع ATS تحصل على ٣ أضعاف فرص المقابلات.",
+    fact4: "٢٥٪ فقط من الباحثين عن عمل يخصصون سيرتهم الذاتية لكل تقديم.",
+    cta: "افحص درجة ATS مجاناً",
   },
   quotes: [
     "كل فرصة عظيمة تبدأ بخطوة واحدة.",

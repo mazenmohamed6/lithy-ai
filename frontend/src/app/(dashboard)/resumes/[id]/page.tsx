@@ -1,69 +1,112 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
 import { RESUME_SECTIONS, RESUME_TEMPLATES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu } from "lucide-react";
+import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ResumeEditorPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useSupabase();
+  const { t, locale } = useI18n();
   const [resume, setResume] = useState<any>(null);
   const [sections, setSections] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "unsaved" | "saving">("saved");
   const [activeSection, setActiveSection] = useState<string>("contact");
   const [previewMode, setPreviewMode] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const isNew = params.id === "new";
+
+  const saveResume = useCallback(async () => {
+    setSaveStatus("saving");
+    try {
+      if (isNew) {
+        const created = await api.post("/resumes", { title, sections });
+        toast.success(locale === "ar" ? "تم إنشاء السيرة الذاتية!" : "Resume created!");
+        router.replace(`/resumes/${created.id}`);
+      } else {
+        await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
+        setSaveStatus("saved");
+      }
+    } catch (err: any) {
+      toast.error(err.message || (locale === "ar" ? "فشل الحفظ" : "Failed to save"));
+      setSaveStatus("unsaved");
+    }
+  }, [title, sections, isNew, params.id, resume, locale]);
 
   useEffect(() => {
     if (!user) return;
-
     if (isNew) {
       setSections(getDefaultSections());
-      setTitle("Untitled Resume");
+      setTitle(locale === "ar" ? "سيرة ذاتية بدون عنوان" : "Untitled Resume");
       setIsLoading(false);
       return;
     }
-
     api.get(`/resumes/${params.id}`)
       .then((data) => {
         setResume(data);
         setSections(data.sections || []);
-        setTitle(data.title || "Untitled Resume");
+        setTitle(data.title || (locale === "ar" ? "سيرة ذاتية بدون عنوان" : "Untitled Resume"));
       })
-      .catch(() => toast.error("Failed to load resume"))
+      .catch(() => toast.error(locale === "ar" ? "فشل تحميل السيرة الذاتية" : "Failed to load resume"))
       .finally(() => setIsLoading(false));
-  }, [user, params.id]);
+  }, [user, params.id, locale]);
 
-  const saveResume = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      if (isNew) {
-        const created = await api.post("/resumes", { title, sections });
-        toast.success("Resume created!");
-        router.replace(`/resumes/${created.id}`);
-      } else {
-        await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
-        toast.success("Saved!");
+  useEffect(() => {
+    if (isNew) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    if (saveStatus === "saving") return;
+    setSaveStatus("unsaved");
+    autosaveTimer.current = setTimeout(() => {
+      if (!isNew) {
+        setSaveStatus("saving");
+        api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId })
+          .then(() => setSaveStatus("saved"))
+          .catch(() => setSaveStatus("unsaved"));
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save");
-    } finally {
-      setIsSaving(false);
-    }
-  }, [title, sections, isNew, params.id, resume]);
+    }, 3000);
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
+  }, [title, sections, isNew, params.id]);
+
+  const getCompletionScore = () => {
+    let filled = 0; let total = 0;
+    const contact = sections.find((s) => s.id === "contact")?.fields || {};
+    if (contact.fullName) filled++; total++;
+    if (contact.email) filled++; total++;
+    if (contact.phone) filled++; total++;
+    const summary = sections.find((s) => s.id === "summary")?.content;
+    if (summary && summary.length > 20) filled++; total++;
+    const exp = sections.find((s) => s.id === "experience")?.items || [];
+    if (exp.length > 0) filled++; total++;
+    const edu = sections.find((s) => s.id === "education")?.items || [];
+    if (edu.length > 0) filled++; total++;
+    const skills = sections.find((s) => s.id === "skills")?.items || [];
+    if (skills.length > 0) filled++; total++;
+    if (exp.some((e: any) => e.description?.length > 50)) filled++; total++;
+    return total > 0 ? Math.round((filled / total) * 100) : 0;
+  };
+
+  const getHealthScore = () => {
+    const score = getCompletionScore();
+    const contact = sections.find((s) => s.id === "contact")?.fields || {};
+    const hasLinkedin = !!contact.linkedin;
+    if (score >= 85 && hasLinkedin) return { score: 95, label: locale === "ar" ? "ممتاز" : "Excellent", color: "text-green-500" };
+    if (score >= 70) return { score: 80, label: locale === "ar" ? "جيد جداً" : "Good", color: "text-blue-500" };
+    if (score >= 40) return { score: 55, label: locale === "ar" ? "قيد التحسين" : "Needs Work", color: "text-yellow-500" };
+    return { score: 25, label: locale === "ar" ? "يحتاج اهتمام" : "Needs Attention", color: "text-red-500" };
+  };
 
   const updateSection = (sectionId: string, data: any) => {
     setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, ...data } : s)));
@@ -72,17 +115,14 @@ export default function ResumeEditorPage() {
   const addSection = (sectionId: string) => {
     const template = RESUME_SECTIONS.find((s) => s.id === sectionId);
     if (!template) return;
-    if (sections.find((s) => s.id === sectionId)) {
-      toast.error("Section already added");
-      return;
-    }
+    if (sections.find((s) => s.id === sectionId)) { toast.error(locale === "ar" ? "القسم مضاف بالفعل" : "Section already added"); return; }
     setSections((prev) => [...prev, { id: sectionId, type: sectionId, title: template.label, enabled: true, items: [], content: "", fields: {} }]);
     setActiveSection(sectionId);
   };
 
   const removeSection = (sectionId: string) => {
     if (["contact", "summary", "experience", "education", "skills"].includes(sectionId)) {
-      toast.error("Cannot remove required section");
+      toast.error(locale === "ar" ? "لا يمكن إزالة قسم أساسي" : "Cannot remove required section");
       return;
     }
     setSections((prev) => prev.filter((s) => s.id !== sectionId));
@@ -96,8 +136,26 @@ export default function ResumeEditorPage() {
     setSections(newSections);
   };
 
+  const completionScore = getCompletionScore();
+  const health = getHealthScore();
+
+  const sectionTips: Record<string, string> = {
+    contact: locale === "ar" ? "أضف رابط LinkedIn لزيادة فرصك بنسبة ٧١٪" : "Adding a LinkedIn URL increases your chances by 71%",
+    summary: locale === "ar" ? "اكتب فقرة مختصرة من ٣-٤ جمل تسلط الضوء على أهم إنجازاتك" : "Write 3-4 sentences highlighting your top achievements",
+    experience: locale === "ar" ? "استخدم أرقاماً وإحصائيات لوصف إنجازاتك. مثلاً: 'زدت المبيعات بنسبة ٣٠٪'" : "Use numbers to describe achievements. E.g. 'Increased sales by 30%'",
+    education: locale === "ar" ? "اذكر المعدل التراكمي إذا كان أعلى من ٣.٠ والمقررات الدراسية ذات الصلة" : "Include GPA if above 3.0 and relevant coursework",
+    skills: locale === "ar" ? "أضف ٨-١٢ مهارة مقسمة إلى مهارات تقنية وشخصية" : "Add 8-12 skills split into technical and soft skills",
+  };
+
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="container py-8">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+          <div className="h-[400px] bg-muted rounded-xl animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   if (previewMode) {
@@ -168,32 +226,79 @@ export default function ResumeEditorPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+        <div className="max-w-3xl mx-auto space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setLeftPanelOpen(!leftPanelOpen)}>
                 <Menu className="h-4 w-4" />
               </Button>
-              <h2 className="text-lg md:text-xl font-semibold truncate">{sections.find((s) => s.id === activeSection)?.title || "Edit Section"}</h2>
+              <h2 className="text-lg md:text-xl font-semibold truncate">{sections.find((s) => s.id === activeSection)?.title || (locale === "ar" ? "تعديل القسم" : "Edit Section")}</h2>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPreviewMode(true)}>
-                <Eye className="mr-2 h-4 w-4" /> Preview
-              </Button>
-              {!isNew && (
-                <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)}>
-                  <Download className="mr-2 h-4 w-4" /> Download
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className={`size-3.5 ${saveStatus === "saved" ? "text-green-500" : saveStatus === "saving" ? "text-yellow-500 animate-spin" : "text-muted-foreground"}`} />
+                  {saveStatus === "saved" ? (locale === "ar" ? "محفوظ" : "Saved") : saveStatus === "saving" ? (locale === "ar" ? "جاري الحفظ..." : "Saving...") : (locale === "ar" ? "تغييرات غير محفوظة" : "Unsaved")}
+                </span>
+                <span className="text-muted-foreground">|</span>
+                <span className="flex items-center gap-1">
+                  <span className={`font-semibold ${completionScore >= 80 ? "text-green-500" : completionScore >= 40 ? "text-yellow-500" : "text-red-500"}`}>{completionScore}%</span>
+                  {locale === "ar" ? "اكتمال" : "Complete"}
+                </span>
+                <span className="text-muted-foreground">|</span>
+                <span className={`font-semibold ${health.color}`}>{health.label}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPreviewMode(true)} className="hidden sm:inline-flex">
+                  <Eye className="mr-1.5 h-3.5 w-3.5" /> {locale === "ar" ? "عرض" : "Preview"}
                 </Button>
-              )}
-              <Button size="sm" onClick={saveResume} disabled={isSaving}>
-                <Save className="mr-2 h-4 w-4" /> {isSaving ? "Saving..." : "Save"}
-              </Button>
+                {!isNew && (
+                  <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)} className="hidden sm:inline-flex">
+                    <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
+                  </Button>
+                )}
+                <Button size="sm" onClick={saveResume} disabled={saveStatus === "saving"}>
+                  <Save className="mr-1.5 h-3.5 w-3.5" /> {saveStatus === "saving" ? "..." : (locale === "ar" ? "حفظ" : "Save")}
+                </Button>
+              </div>
             </div>
           </div>
 
+          <div className="sm:hidden flex items-center justify-between text-xs px-1 pb-1">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className={`size-3 ${saveStatus === "saved" ? "text-green-500" : "text-muted-foreground"}`} />
+              {saveStatus === "saved" ? (locale === "ar" ? "محفوظ" : "Saved") : (locale === "ar" ? "غير محفوظ" : "Unsaved")}
+            </span>
+            <span className={`font-semibold ${completionScore >= 80 ? "text-green-500" : completionScore >= 40 ? "text-yellow-500" : "text-red-500"}`}>{completionScore}%</span>
+            <span className={health.color}>{health.label}</span>
+          </div>
+
+          {sectionTips[activeSection] && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10 text-xs text-muted-foreground">
+              <Lightbulb className="size-3.5 text-primary shrink-0 mt-0.5" />
+              <span>{sectionTips[activeSection]}</span>
+            </div>
+          )}
+
+          <div className="h-[1px] bg-border" />
+
           <SectionEditor sectionId={activeSection} data={sections.find((s) => s.id === activeSection)} onUpdate={updateSection} />
         </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background border-t p-3 flex gap-2 z-40">
+        <Button variant="outline" size="sm" className="flex-1" onClick={() => setPreviewMode(true)}>
+          <Eye className="mr-1.5 h-3.5 w-3.5" /> {locale === "ar" ? "عرض" : "Preview"}
+        </Button>
+        {!isNew && (
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)}>
+            <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
+          </Button>
+        )}
+        <Button size="sm" className="flex-1" onClick={saveResume} disabled={saveStatus === "saving"}>
+          <Save className="mr-1.5 h-3.5 w-3.5" /> {saveStatus === "saving" ? "..." : (locale === "ar" ? "حفظ" : "Save")}
+        </Button>
       </div>
     </div>
   );

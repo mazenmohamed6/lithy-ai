@@ -134,7 +134,17 @@
 }
 
 [dir="rtl"] {
-  --font-sans: var(--font-noto, "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif);
+  --font-sans: "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+}
+
+[dir="rtl"] body {
+  letter-spacing: 0;
+  font-feature-settings: "kern" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+[dir="rtl"] .font-bold {
+  font-weight: 700;
 }
 
 [dir="rtl"] .space-x-reverse {
@@ -278,4 +288,26 @@
 .section-fade.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+[data-sonner-toaster] {
+  z-index: 99999;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
 }
