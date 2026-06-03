@@ -1,12 +1,16 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   private supabase;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     this.supabase = createClient(
       this.configService.get<string>('SUPABASE_URL') || process.env.SUPABASE_URL || '',
       this.configService.get<string>('SUPABASE_ANON_KEY') || process.env.SUPABASE_ANON_KEY || '',
@@ -20,7 +24,7 @@ export class AuthGuard implements CanActivate {
     const token = this.extractToken(request) || request.query?.token;
 
     if (bypassToken && token === bypassToken) {
-      request.user = { id: 'bypass-user', email: 'bypass@lithy.ai', accessToken: token };
+      request.user = { id: 'bypass-user', email: 'bypass@lithy.ai', role: 'ADMIN', accessToken: token };
       return true;
     }
 
@@ -35,7 +39,13 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Invalid or expired token');
       }
 
-      request.user = { ...user, accessToken: token };
+      let role = 'USER';
+      try {
+        const dbUser = await this.prisma.user.findUnique({ where: { email: user.email } });
+        if (dbUser) role = dbUser.role;
+      } catch {}
+
+      request.user = { ...user, role, accessToken: token };
       return true;
     } catch (error) {
       throw new UnauthorizedException('Authentication failed');
