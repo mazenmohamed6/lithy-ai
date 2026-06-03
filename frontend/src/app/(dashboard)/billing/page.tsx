@@ -8,15 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
 import { formatCurrency, cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, CreditCard, Download, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard, ExternalLink } from "lucide-react";
 
 export default function BillingPage() {
+  const { t, locale } = useI18n();
   const { user } = useSupabase();
   const [subscription, setSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [annual, setAnnual] = useState(subscription?.plan?.interval === "year");
+  const [annual, setAnnual] = useState(false);
   const searchParams = useSearchParams();
   const planParam = searchParams.get("plan");
 
@@ -44,12 +46,10 @@ export default function BillingPage() {
 
   const handleManageBilling = async () => {
     try {
-      const res = await api.post("/payments/customer-portal", {
-        returnUrl: window.location.href,
-      });
+      const res = await api.post("/payments/customer-portal", { returnUrl: window.location.href });
       window.location.href = res.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to open billing portal");
+      toast.error(err.message || t("billing.portalError"));
     }
   };
 
@@ -64,39 +64,44 @@ export default function BillingPage() {
         });
         window.location.href = res.url;
       } catch (err: any) {
-        toast.error(err.message || "Failed to start checkout");
+        toast.error(err.message || t("billing.checkoutError"));
       }
     }
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-2">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">{t("billing.loading")}</p>
+      </div>
+    );
   }
 
   const currentPlanName = subscription?.plan?.name || "FREE";
   const filteredPlans = plans.filter((p) => p.interval === (annual ? "year" : "month"));
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className={`container py-8 space-y-8 animate-fade-in ${locale === "ar" ? "text-right" : ""}`}>
       <div>
-        <h1 className="text-3xl font-bold">Billing</h1>
-        <p className="text-muted-foreground">Manage your subscription and payment methods.</p>
+        <h1 className="text-3xl font-bold">{t("billing.title")}</h1>
+        <p className="text-muted-foreground">{t("billing.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Current Plan
+            {t("billing.currentPlan")}
           </CardTitle>
-          <CardDescription>Your subscription details</CardDescription>
+          <CardDescription>{t("billing.currentPlanDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className={`flex items-center justify-between ${locale === "ar" ? "flex-row-reverse" : ""}`}>
             <div>
               <p className="text-lg font-semibold">{subscription?.plan?.name || "Free"}</p>
               <p className="text-sm text-muted-foreground">
-                {subscription?.status === "TRIALING" ? "Trial period" : subscription?.status === "ACTIVE" ? "Active" : subscription?.status || "No subscription"}
+                {subscription?.status === "TRIALING" ? t("billing.trial") : subscription?.status === "ACTIVE" ? t("billing.active") : subscription?.status || t("billing.noSubscription")}
               </p>
             </div>
             <Badge variant={subscription?.status === "ACTIVE" ? "success" : "secondary"}>
@@ -105,31 +110,31 @@ export default function BillingPage() {
           </div>
           {subscription?.currentPeriodEnd && (
             <p className="text-sm text-muted-foreground">
-              Current period ends: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+              {t("billing.periodEnd")}: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
             </p>
           )}
         </CardContent>
       </Card>
 
       {subscription?.stripeCustomerId && (
-        <Button variant="outline" onClick={handleManageBilling}>
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Manage in Stripe Portal
+        <Button variant="outline" onClick={handleManageBilling} className="gap-2">
+          <ExternalLink className="h-4 w-4" />
+          {t("billing.manageStripe")}
         </Button>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Available Plans</CardTitle>
-          <CardDescription>Upgrade or change your plan</CardDescription>
+          <CardTitle>{t("billing.availablePlans")}</CardTitle>
+          <CardDescription>{t("billing.availablePlansDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <span className={cn("text-sm", !annual && "font-semibold")}>Monthly</span>
+          <div className={`flex items-center justify-center gap-4 mb-6 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+            <span className={cn("text-sm", !annual && "font-semibold")}>{t("billing.monthly")}</span>
             <button onClick={() => setAnnual(!annual)} className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors", annual ? "bg-primary" : "bg-muted")}>
               <span className={cn("inline-block h-4 w-4 rounded-full bg-white transition-transform", annual ? "translate-x-6" : "translate-x-1")} />
             </button>
-            <span className={cn("text-sm", annual && "font-semibold")}>Annual <span className="text-green-600">-20%</span></span>
+            <span className={cn("text-sm", annual && "font-semibold")}>{t("billing.annual")} <span className="text-green-600">{t("billing.savePercent")}</span></span>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
             {filteredPlans.map((plan) => {
@@ -141,7 +146,7 @@ export default function BillingPage() {
                     <CardDescription>{plan.description}</CardDescription>
                     <div className="mt-2">
                       <span className="text-2xl font-bold">{formatCurrency(plan.priceEgp)}</span>
-                      <span className="text-muted-foreground">/{annual ? "yr" : "mo"}</span>
+                      <span className="text-muted-foreground">{annual ? t("billing.perYear") : t("billing.perMonth")}</span>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -150,7 +155,7 @@ export default function BillingPage() {
                       variant={isCurrent ? "outline" : "default"}
                       onClick={() => handleCheckout(plan)}
                     >
-                      {isCurrent ? "Current Plan" : plan.priceEgp === 0 ? "Free" : "Upgrade"}
+                      {isCurrent ? t("billing.currentPlanBtn") : plan.priceEgp === 0 ? t("billing.free") : t("billing.upgrade")}
                     </Button>
                   </CardContent>
                 </Card>
