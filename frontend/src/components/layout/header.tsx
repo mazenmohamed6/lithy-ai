@@ -29,6 +29,7 @@ export function Header() {
       ]
     : [
         { href: "/features", label: t("nav.features") },
+        { href: "/resume-templates", label: "Templates" },
         { href: "/pricing", label: t("nav.pricing") },
         { href: "/blog", label: t("nav.blog") },
         { href: "/about", label: t("nav.about") },

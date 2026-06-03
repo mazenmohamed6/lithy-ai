@@ -66,7 +66,7 @@ model User {
 model UserProfile {
   id              String  @id @default(cuid())
   userId          String  @unique
-  phone           String?
+  phone           String?  @unique
   location        String?
   linkedinUrl     String?
   jobTitle        String?
@@ -433,4 +433,134 @@ model AppSettings {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
+}
+
+enum RiskLevel {
+  NORMAL
+  MONITOR
+  SUSPICIOUS
+  HIGH_RISK
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum AccountLinkStatus {
+  ACTIVE
+  DELETED
+}
+
+/// Ties together identity signals and cumulative usage for one real person.
+/// Survives account deletion — never removed.
+model IdentityLedger {
+  id        String   @id @default(cuid())
+
+  // Identity correlation signals
+  phone              String?
+  deviceFingerprint  String?
+  browserFingerprint String?
+
+  // All-time usage totals across every account this person has ever had
+  totalAiGenerations    Int  @default(0)
+  totalAtsScans         Int  @default(0)
+  totalResumeExports    Int  @default(0)
+  totalCoverLetters     Int  @default(0)
+
+  // Free-plan lifecycle
+  freePlanActivated     Boolean @default(false)
+  freePlanExhausted     Boolean @default(false)
+
+  // Risk assessment
+  riskScore             Int      @default(0)
+  riskLevel             RiskLevel @default(NORMAL)
+  flags                 Json     @default("[]") // ["trusted","suspicious","manual_review","phone_verified"]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  linkedAccounts LinkedAccount[]
+  riskEvents     RiskEvent[]
+  fraudAlerts    FraudAlert[]
+
+  @@index([phone])
+  @@index([deviceFingerprint])
+  @@index([browserFingerprint])
+  @@index([riskScore])
+  @@index([riskLevel])
+  @@map("identity_ledgers")
+}
+
+/// Maps a Supabase/Prisma user ID to an IdentityLedger.
+/// Preserves user metadata even after the user deletes their account.
+model LinkedAccount {
+  id          String   @id @default(cuid())
+  ledgerId    String
+  userId      String?  // Nullable — user may delete their account
+  email       String?  // Preserved across deletion
+  oauthProvider String?
+  oauthId     String?
+  status      AccountLinkStatus @default(ACTIVE)
+  ipAddresses Json     @default("[]")
+  userAgents  Json     @default("[]")
+  stripeCustomerId String?
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  ledger IdentityLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+
+  @@index([ledgerId])
+  @@index([userId])
+  @@index([email])
+  @@index([oauthId])
+  @@map("linked_accounts")
+}
+
+/// Audit trail for anti-abuse events. Never deleted.
+model RiskEvent {
+  id            String   @id @default(cuid())
+  ledgerId      String
+  eventType     String   // ACCOUNT_CREATED, ACCOUNT_DELETED, FREE_PLAN_ACTIVATED, FREE_PLAN_RESTORED, RISK_SCORE_CHANGED, FRAUD_ALERT_TRIGGERED, IDENTITY_LINKED, USAGE_EXCEEDED
+  riskDelta     Int      @default(0)
+  previousScore Int      @default(0)
+  newScore      Int      @default(0)
+  details       Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  ledger IdentityLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+
+  @@index([ledgerId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("risk_events")
+}
+
+/// Admin review queue for suspicious identities. Never deleted.
+model FraudAlert {
+  id         String   @id @default(cuid())
+  ledgerId   String
+  type       String   // MULTIPLE_ACCOUNTS, RAPID_CREATION_DELETION, EXCESSIVE_USAGE, SUSPICIOUS_PATTERN
+  severity   AlertSeverity @default(MEDIUM)
+  status     AlertStatus   @default(OPEN)
+  details    Json      @default("{}")
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  resolvedBy String?   // Admin user ID who resolved this
+
+  ledger IdentityLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
+
+  @@index([ledgerId])
+  @@index([status])
+  @@index([severity])
+  @@map("fraud_alerts")
 }

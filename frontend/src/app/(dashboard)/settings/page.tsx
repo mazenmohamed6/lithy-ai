@@ -11,7 +11,8 @@ import { api } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, User, Shield, Bell, CreditCard, LogOut, Globe } from "lucide-react";
+import { PhoneVerify } from "@/components/phone-verify";
+import { Loader2, User, Shield, Bell, CreditCard, LogOut, Globe, CheckCircle2 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, signOut } = useSupabase();
@@ -128,7 +129,15 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input value={profile.phone || ""} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+                  <div className="flex items-center gap-2">
+                    <Input value={profile.phone || ""} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="flex-1" />
+                    {profile.phone && <PhoneVerify phone={profile.phone} onVerified={() => setProfile({ ...profile, phoneVerified: true })} />}
+                    {profile.phoneVerified && (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-600 shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Verified
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Location</Label>

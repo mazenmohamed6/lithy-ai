@@ -102,7 +102,15 @@ export class AuthController {
   @Post('sync')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Sync OAuth user to local database' })
-  async syncUser(@Body() body: { userId: string; email: string }) {
-    return this.authService.syncUser(body.userId, body.email);
+  async syncUser(@Body() body: { userId: string; email: string; phone?: string; metadata?: Record<string, any> }) {
+    return this.authService.syncUser(body.userId, body.email, body.phone, body.metadata);
+  }
+
+  @Post('phone/verify')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirm phone verification and update identity ledger' })
+  async verifyPhone(@CurrentUser() user: any, @Body() body: { phone: string }) {
+    return this.authService.verifyPhone(user.id, body.phone);
   }
 }

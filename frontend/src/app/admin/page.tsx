@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BarChart3, DollarSign, FileText, Flag, Layers, History, BookOpen } from "lucide-react";
+import { Users, BarChart3, DollarSign, FileText, Flag, Layers, History, BookOpen, Shield } from "lucide-react";
 
 const sections = [
   { href: "/admin/users", icon: Users, title: "Users", description: "Manage users and roles" },
   { href: "/admin/analytics", icon: BarChart3, title: "Analytics", description: "Usage and platform metrics" },
   { href: "/admin/revenue", icon: DollarSign, title: "Revenue", description: "Subscriptions and payments" },
   { href: "/admin/subscriptions", icon: Layers, title: "Subscriptions", description: "Plan management" },
+  { href: "/admin/abuse", icon: Shield, title: "Abuse Monitoring", description: "Fraud detection and identity tracking" },
   { href: "/admin/feature-flags", icon: Flag, title: "Feature Flags", description: "Toggle platform features" },
   { href: "/admin/content", icon: FileText, title: "Content", description: "Blog and legal pages" },
   { href: "/admin/logs", icon: History, title: "Audit Logs", description: "System activity logs" },

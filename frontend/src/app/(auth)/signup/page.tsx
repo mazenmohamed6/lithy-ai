@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { api } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/context";
+import { getDeviceFingerprint, getBrowserFingerprint } from "@/lib/fingerprint";
 import { toast } from "sonner";
 import { Mail } from "lucide-react";
 
@@ -63,7 +64,11 @@ export default function SignupPage() {
     try {
       const data = await api.post("/auth/signup", {
         email, password, phone: phone || undefined,
-        metadata: { selectedPlan: planParam || "free" },
+        metadata: {
+          selectedPlan: planParam || "free",
+          deviceFingerprint: getDeviceFingerprint(),
+          browserFingerprint: getBrowserFingerprint(),
+        },
       });
       if (data.checkoutUrl) {
         toast.success(locale === "ar" ? "تم إنشاء الحساب! جاري التوجيه للدفع..." : "Account created! Redirecting to payment...");
@@ -81,6 +86,8 @@ export default function SignupPage() {
   const handleGoogleSignup = async () => {
     setIsLoading(true);
     const nextPath = planParam ? `/billing?plan=${planParam}` : '/dashboard';
+    // Store fingerprint in cookie for callback to read
+    document.cookie = `lithy_fp=${encodeURIComponent(JSON.stringify({ device: getDeviceFingerprint(), browser: getBrowserFingerprint() }))};path=/;max-age=300`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}` },

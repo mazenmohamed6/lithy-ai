@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { PrismaService } from '../common/prisma.service';
+import { AntiAbuseService } from '../anti-abuse/anti-abuse.service';
 
 @Injectable()
 export class AiService {
@@ -12,6 +13,7 @@ export class AiService {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    private antiAbuseService: AntiAbuseService,
   ) {
     const apiKey = this.configService.get<string>('GROQ_API_KEY');
     if (!apiKey) {
@@ -280,11 +282,51 @@ export class AiService {
     currentMonth.setDate(1);
     currentMonth.setHours(0, 0, 0, 0);
 
+    const userIds = [userId];
+    try {
+      const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+      if (profile?.phone) {
+        const samePhoneProfiles = await this.prisma.userProfile.findMany({
+          where: { phone: profile.phone },
+          select: { userId: true },
+        });
+        for (const p of samePhoneProfiles) {
+          if (!userIds.includes(p.userId)) userIds.push(p.userId);
+        }
+      }
+    } catch {
+      // If profile lookup fails, fall back to single-user check
+    }
+
+    // Check identity ledger first (survives account deletion)
+    const identityUsage = await this.antiAbuseService.getIdentityUsage(userId);
+    if (identityUsage.freePlanExhausted) {
+      // Determine which feature type matches
+      if (type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER') {
+        if (identityUsage.ledgerTotalAiGenerations >= limit) {
+          throw new BadRequestException(`Free plan benefits exhausted. Upgrade to access ${type}.`);
+        }
+      }
+      if (type === 'ATS_SCAN' && identityUsage.ledgerTotalAtsScans >= limit) {
+        throw new BadRequestException(`Free plan benefits exhausted. Upgrade to access ATS scans.`);
+      }
+      if (type === 'JOB_MATCH' && identityUsage.ledgerTotalAtsScans >= limit) {
+        throw new BadRequestException(`Free plan benefits exhausted. Upgrade to access job matching.`);
+      }
+    }
+
+    // Combine ledger usage (from deleted accounts) with current account usage
+    const ledgerTotal = type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER'
+      ? identityUsage.ledgerTotalAiGenerations
+      : type === 'ATS_SCAN' || type === 'JOB_MATCH'
+        ? identityUsage.ledgerTotalAtsScans
+        : 0;
+
     const usageCount = await this.prisma.aIGeneration.count({
-      where: { userId, type: type as any, createdAt: { gte: currentMonth } },
+      where: { userId: { in: userIds }, type: type as any, createdAt: { gte: currentMonth } },
     });
 
-    if (usageCount >= limit) {
+    if (usageCount + ledgerTotal >= limit) {
       throw new BadRequestException(`Monthly limit reached for ${type}. Upgrade or purchase add-on pack.`);
     }
   }

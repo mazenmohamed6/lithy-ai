@@ -122,6 +122,33 @@ export default function DashboardPage() {
         </Link>
       </div>
 
+      {usage?.freePlanExhausted && (
+        <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-4 flex items-start gap-3">
+          <Clock className="h-5 w-5 text-orange-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-orange-800 dark:text-orange-300">Free plan benefits exhausted</p>
+            <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+              You've already used your free-plan credits across previous accounts. Upgrade to a paid plan to continue using AI features.
+            </p>
+          </div>
+          <Link href="/billing" className="shrink-0 ml-auto">
+            <Button size="sm" variant="default" className="bg-orange-600 hover:bg-orange-700">Upgrade</Button>
+          </Link>
+        </div>
+      )}
+
+      {usage?.totalAiGenerations > 0 && !usage?.freePlanExhausted && (
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
+          <Clock className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-blue-800 dark:text-blue-300">Consolidated Usage Tracking</p>
+            <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+              Your account is linked to a previous identity. <strong>{usage.totalAiGenerations} AI generations</strong> and <strong>{usage.totalAtsScans} ATS scans</strong> have been used across all your accounts.
+            </p>
+          </div>
+        </div>
+      )}
+
       {usage && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[

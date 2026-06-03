@@ -17,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { EmailModule } from './email/email.module';
 import { StorageModule } from './storage/storage.module';
+import { AntiAbuseModule } from './anti-abuse/anti-abuse.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { StorageModule } from './storage/storage.module';
     AnalyticsModule,
     EmailModule,
     StorageModule,
+    AntiAbuseModule,
   ],
   providers: [
     {
