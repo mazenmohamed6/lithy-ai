@@ -3,7 +3,7 @@ import { PrismaService } from '../common/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 
 @Injectable()
@@ -134,8 +134,9 @@ export class ResumesService {
       if (ext === '.txt') {
         textContent = file.buffer.toString('utf-8');
       } else if (ext === '.pdf') {
-        const data = await pdfParse(file.buffer);
-        textContent = data.text || '';
+        const parser = new PDFParse(new Uint8Array(file.buffer));
+        const data = await parser.getText();
+        textContent = typeof data === 'string' ? data : data?.text || '';
       } else if (ext === '.docx' || ext === '.doc') {
         const result = await mammoth.extractRawText({ buffer: file.buffer });
         textContent = result.value || '';
