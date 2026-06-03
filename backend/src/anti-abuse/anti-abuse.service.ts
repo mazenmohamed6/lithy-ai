@@ -287,8 +287,8 @@ export class AntiAbuseService {
       let activeAts = 0;
       if (activeUserIds.length > 0) {
         const [ai, ats] = await Promise.all([
-          this.prisma.aIGeneration.count({ where: { userId: { in: activeUserIds }, status: 'completed' } }),
-          this.prisma.aTSScore.count({ where: { userId: { in: activeUserIds } } }),
+          this.prisma.aIGeneration.count({ where: { userId: { in: activeUserIds }, status: 'completed', NOT: { type: 'ATS_SCAN' } } }),
+          this.prisma.aIGeneration.count({ where: { userId: { in: activeUserIds }, type: 'ATS_SCAN', status: 'completed' } }),
         ]);
         activeAi = ai;
         activeAts = ats;
@@ -478,9 +478,11 @@ export class AntiAbuseService {
     // Count all-time usage across this specific user's records
     const [aiGenerations, atsScans, coverLetters] = await Promise.all([
       this.prisma.aIGeneration.count({
-        where: { userId, status: 'completed' },
+        where: { userId, status: 'completed', NOT: { type: 'ATS_SCAN' } },
       }),
-      this.prisma.aTSScore.count({ where: { userId } }),
+      this.prisma.aIGeneration.count({
+        where: { userId, type: 'ATS_SCAN', status: 'completed' },
+      }),
       this.prisma.coverLetter.count({ where: { userId } }),
     ]);
 
@@ -564,10 +566,10 @@ export class AntiAbuseService {
     if (activeUserIds.length > 0) {
       const [aiCount, atsCount] = await Promise.all([
         this.prisma.aIGeneration.count({
-          where: { userId: { in: activeUserIds }, status: 'completed' },
+          where: { userId: { in: activeUserIds }, status: 'completed', NOT: { type: 'ATS_SCAN' } },
         }),
-        this.prisma.aTSScore.count({
-          where: { userId: { in: activeUserIds } },
+        this.prisma.aIGeneration.count({
+          where: { userId: { in: activeUserIds }, type: 'ATS_SCAN', status: 'completed' },
         }),
       ]);
       activeAiGenerations = aiCount;
