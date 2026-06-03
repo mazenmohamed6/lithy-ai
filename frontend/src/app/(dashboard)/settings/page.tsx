@@ -160,6 +160,18 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+
+          <Card className="mt-6">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="font-medium">{locale === "ar" ? "تسجيل الخروج" : "Sign Out"}</p>
+                <p className="text-sm text-muted-foreground">{locale === "ar" ? "تسجيل الخروج من حسابك" : "Sign out of your account"}</p>
+              </div>
+              <Button variant="outline" onClick={() => { signOut(); window.location.href = "/"; }}>
+                <LogOut className="mr-2 h-4 w-4" /> {locale === "ar" ? "تسجيل الخروج" : "Log Out"}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="security">
@@ -186,9 +198,6 @@ export default function SettingsPage() {
               <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
                 {isUpdatingPassword ? "Updating..." : "Update Password"}
               </Button>
-              <div className="pt-6 border-t">
-                <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -218,17 +227,6 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
 
-      <Card className="mt-6">
-        <CardContent className="flex items-center justify-between p-6">
-          <div>
-            <p className="font-medium">{locale === "ar" ? "تسجيل الخروج" : "Sign Out"}</p>
-            <p className="text-sm text-muted-foreground">{locale === "ar" ? "تسجيل الخروج من حسابك" : "Sign out of your account"}</p>
-          </div>
-          <Button variant="outline" onClick={() => { signOut(); window.location.href = "/"; }}>
-            <LogOut className="mr-2 h-4 w-4" /> {locale === "ar" ? "تسجيل الخروج" : "Log Out"}
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
