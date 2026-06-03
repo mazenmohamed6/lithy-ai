@@ -274,6 +274,23 @@ export default function ResumeEditorPage() {
             <span className={health.color}>{health.label}</span>
           </div>
 
+          <div className="md:hidden flex gap-1 overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar">
+            {sections.filter(s => s.enabled !== false).map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+                  activeSection === section.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {section.title}
+              </button>
+            ))}
+          </div>
+
           {sectionTips[activeSection] && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10 text-xs text-muted-foreground">
               <Lightbulb className="size-3.5 text-primary shrink-0 mt-0.5" />
