@@ -41,28 +41,26 @@ export class AuthService {
     });
 
     const selectedPlan = metadata?.selectedPlan || 'free';
-    if (selectedPlan !== 'free') {
-      const plan = await this.prisma.subscriptionPlan.findFirst({
-        where: { name: selectedPlan.toUpperCase() as any, isActive: true },
+    const plan = await this.prisma.subscriptionPlan.findFirst({
+      where: { name: selectedPlan.toUpperCase() as any, isActive: true },
+    });
+    const planId = plan?.id || 'plan_free';
+    const isPaid = selectedPlan !== 'free';
+
+    await this.prisma.userSubscription.create({
+      data: {
+        userId,
+        planId,
+        status: isPaid ? 'TRIALING' : 'ACTIVE',
+        trialEnd: isPaid ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined,
+      },
+    });
+
+    if (isPaid) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { role: 'PRO' },
       });
-      if (plan) {
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 7);
-
-        await this.prisma.userSubscription.create({
-          data: {
-            userId,
-            planId: plan.id,
-            status: 'TRIALING',
-            trialEnd,
-          },
-        });
-
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { role: 'PRO' },
-        });
-      }
     }
 
     return { user: data.user, message: 'Account created successfully' };

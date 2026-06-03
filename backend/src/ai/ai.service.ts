@@ -210,7 +210,10 @@ export class AiService {
       include: { plan: true },
     });
 
-    const features = (subscription?.plan?.features || '{}') as any;
+    const planId = subscription?.planId || 'plan_free';
+    const plan = subscription?.plan || await this.prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+
+    const features = (plan?.features || '{}') as any;
     const parsed = typeof features === 'string' ? JSON.parse(features) : features;
 
     const featureMap: Record<string, { key: string; isBool: boolean }> = {

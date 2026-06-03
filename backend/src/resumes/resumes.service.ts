@@ -3,6 +3,9 @@ import { PrismaService } from '../common/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
+
 @Injectable()
 export class ResumesService {
   private uploadDir: string;
@@ -124,13 +127,24 @@ export class ResumesService {
       throw new BadRequestException('Only PDF, DOCX, and TXT files are supported');
     }
 
-    const fileName = `${Date.now()}_${file.originalname}`;
-    const filePath = path.join(this.uploadDir, fileName);
-    try { fs.writeFileSync(filePath, file.buffer); } catch {};
+    const ext = path.extname(file.originalname).toLowerCase();
+    let textContent = '';
 
-    const textContent = file.mimetype === 'text/plain'
-      ? file.buffer.toString('utf-8')
-      : `Uploaded file: ${file.originalname}`;
+    try {
+      if (ext === '.txt') {
+        textContent = file.buffer.toString('utf-8');
+      } else if (ext === '.pdf') {
+        const data = await pdfParse(file.buffer);
+        textContent = data.text || '';
+      } else if (ext === '.docx' || ext === '.doc') {
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        textContent = result.value || '';
+      }
+    } catch (err) {
+      textContent = `[Could not extract text from ${file.originalname}]`;
+    }
+
+    textContent = textContent.trim().substring(0, 10000);
 
     const sections = [
       { id: 'contact', type: 'contact', title: 'Contact', enabled: true, fields: { fullName: file.originalname.replace(/\.[^/.]+$/, '') } },
