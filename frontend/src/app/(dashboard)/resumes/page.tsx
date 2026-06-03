@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { formatDateRelative } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { FileText, Plus, ArrowRight, Loader2, Download, Sparkles, Upload, Search, Clock, CheckCircle2, AlertTriangle, TrendingUp, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 function getScoreBadge(score: number | null | undefined) {
   if (score == null) return null;
@@ -47,6 +48,14 @@ export default function ResumesPage() {
     }
     return list;
   }, [resumes, searchQuery, sortBy]);
+
+  const handleDownload = useCallback(async (id: string) => {
+    try {
+      await api.download(`/resumes/${id}/download-pdf`);
+    } catch {
+      toast.info(locale === "ar" ? "تعذر تحميل PDF من الخادم" : "Server PDF unavailable, try opening the resume to print");
+    }
+  }, [locale]);
 
   if (isLoading) {
     return (
@@ -191,7 +200,7 @@ export default function ResumesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="size-9" onClick={(e) => { e.stopPropagation(); api.download(`/resumes/${resume.id}/download-pdf`); }} title={locale === "ar" ? "تحميل PDF" : "Download PDF"}>
+                    <Button variant="ghost" size="icon" className="size-9" onClick={(e) => { e.stopPropagation(); handleDownload(resume.id); }} title={locale === "ar" ? "تحميل PDF" : "Download PDF"}>
                       <Download className="size-4" />
                     </Button>
                     <Link href={`/resumes/${resume.id}`}>

@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import { RESUME_SECTIONS, RESUME_TEMPLATES } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb } from "lucide-react";
+import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ResumeEditorPage() {
@@ -79,6 +79,19 @@ export default function ResumeEditorPage() {
     }, 3000);
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [title, sections, isNew, params.id]);
+
+  const handleDownload = useCallback(async () => {
+    if (!isNew && params.id) {
+      try {
+        await api.download(`/resumes/${params.id}/download-pdf`);
+      } catch {
+        toast.info(locale === "ar" ? "جاري فتح خيار الطباعة..." : "Opening print dialog...");
+        setTimeout(() => window.print(), 500);
+      }
+    } else {
+      window.print();
+    }
+  }, [isNew, params.id, locale]);
 
   const getCompletionScore = () => {
     let filled = 0; let total = 0;
@@ -165,7 +178,7 @@ export default function ResumeEditorPage() {
           <Button variant="ghost" onClick={() => setPreviewMode(false)}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
           </Button>
-          <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)}>
+          <Button variant="outline" size="sm" onClick={handleDownload}>
             <Download className="mr-2 h-4 w-4" /> Save as PDF
           </Button>
         </div>
@@ -254,7 +267,7 @@ export default function ResumeEditorPage() {
                   <Eye className="mr-1.5 h-3.5 w-3.5" /> {locale === "ar" ? "عرض" : "Preview"}
                 </Button>
                 {!isNew && (
-                  <Button variant="outline" size="sm" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)} className="hidden sm:inline-flex">
+                  <Button variant="outline" size="sm" onClick={handleDownload} className="hidden sm:inline-flex">
                     <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
                   </Button>
                 )}
@@ -309,7 +322,7 @@ export default function ResumeEditorPage() {
           <Eye className="mr-1.5 h-3.5 w-3.5" /> {locale === "ar" ? "عرض" : "Preview"}
         </Button>
         {!isNew && (
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => api.download(`/resumes/${params.id}/download-pdf`)}>
+          <Button variant="outline" size="sm" className="flex-1" onClick={handleDownload}>
             <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
           </Button>
         )}
