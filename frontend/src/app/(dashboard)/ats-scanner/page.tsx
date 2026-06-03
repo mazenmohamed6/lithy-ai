@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, BarChart3, ArrowUpRight, CheckCircle2, XCircle, AlertTriangle, Lightbulb, RefreshCw, Target } from "lucide-react";
 import { ResumeUpload } from "@/components/resume-upload";
+import { useI18n } from "@/lib/i18n/context";
 
 function getScoreColor(score: number): string {
   if (score >= 80) return "#22c55e";
@@ -59,6 +60,7 @@ function KeywordBadge({ keyword, matched }: { keyword: string; matched: boolean 
 }
 
 export default function ATSScannerPage() {
+  const { t, locale } = useI18n();
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -86,10 +88,10 @@ export default function ATSScannerPage() {
   };
 
   return (
-    <div className="container py-8 space-y-8 animate-fade-in">
+    <div className={`container py-8 space-y-8 animate-fade-in ${locale === "ar" ? "text-right" : ""}`}>
       <div>
-        <h1 className="text-3xl font-bold">ATS Score Analyzer</h1>
-        <p className="text-muted-foreground">Optimize your resume to pass Applicant Tracking Systems and land more interviews.</p>
+        <h1 className="text-3xl font-bold">{t("atsScanner.title")}</h1>
+        <p className="text-muted-foreground">{t("atsScanner.subtitle")}</p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -97,17 +99,17 @@ export default function ATSScannerPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Resume & Job Description
+              {t("atsScanner.resumeAndJob")}
             </CardTitle>
-            <CardDescription>Paste your resume content and the target job description</CardDescription>
+            <CardDescription>{t("atsScanner.resumeAndJobDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Resume Content</label>
+              <label className="text-sm font-medium mb-1.5 block">{t("atsScanner.resumeContent")}</label>
               <ResumeUpload onResumeText={setResumeText} initialText={resumeText} />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Industry <span className="text-muted-foreground font-normal">(for keyword matching)</span></label>
+              <label className="text-sm font-medium mb-1.5 block">{t("atsScanner.industry")} <span className="text-muted-foreground font-normal">(for keyword matching)</span></label>
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
@@ -124,11 +126,11 @@ export default function ATSScannerPage() {
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Job Description</label>
+              <label className="text-sm font-medium mb-1.5 block">{t("atsScanner.jobDesc")}</label>
               <textarea className="w-full min-h-[200px] rounded-md border border-input bg-transparent p-3 text-sm resize-y" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} placeholder="Paste the job description here..." />
             </div>
             <Button onClick={handleAnalyze} disabled={isAnalyzing} className="w-full gap-2">
-              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing... </> : <><BarChart3 className="h-4 w-4" /> Analyze ATS Score</>}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("atsScanner.analyzing")} </> : <><BarChart3 className="h-4 w-4" /> {t("atsScanner.analyze")}</>}
             </Button>
           </CardContent>
         </Card>
@@ -137,8 +139,8 @@ export default function ATSScannerPage() {
           <Card className="card-hover border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <BarChart3 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Your results will appear here</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">Paste your resume and job description above, then click &quot;Analyze ATS Score&quot; to see how well your resume matches.</p>
+              <h3 className="text-lg font-medium mb-2">{t("atsScanner.noResult")}</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">{t("atsScanner.noResultDesc")}</p>
             </CardContent>
           </Card>
         )}
@@ -147,7 +149,7 @@ export default function ATSScannerPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-              <p className="text-sm text-muted-foreground">Analyzing your resume against the job description...</p>
+              <p className="text-sm text-muted-foreground">{t("atsScanner.loadingResult")}</p>
             </CardContent>
           </Card>
         )}
@@ -158,7 +160,7 @@ export default function ATSScannerPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <BarChart3 className="h-5 w-5" />
-                  ATS Compatibility Score
+                  {t("atsScanner.result")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -189,7 +191,7 @@ export default function ATSScannerPage() {
             {result.breakdown && (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Score Breakdown</CardTitle>
+                  <CardTitle className="text-lg">{t("atsScanner.breakdown")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {Object.entries(result.breakdown).map(([key, value]: [string, any]) => (
@@ -213,7 +215,7 @@ export default function ATSScannerPage() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium flex items-center gap-2 text-green-600">
                       <CheckCircle2 className="h-4 w-4" />
-                      Matched Keywords ({result.matchedKeywords.length})
+                      {t("atsScanner.matchedKeywords")} ({result.matchedKeywords.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -231,7 +233,7 @@ export default function ATSScannerPage() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-medium flex items-center gap-2 text-red-600">
                       <XCircle className="h-4 w-4" />
-                      Missing Keywords ({result.missingKeywords.length})
+                      {t("atsScanner.missingKeywords")} ({result.missingKeywords.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -249,7 +251,7 @@ export default function ATSScannerPage() {
               {result.keywordScore !== undefined && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Keyword Match Rate</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("atsScanner.keywordMatch")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-3">
@@ -271,7 +273,7 @@ export default function ATSScannerPage() {
               {result.formatScore !== undefined && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Format & Parsing</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("atsScanner.formatParsing")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-3">
@@ -296,7 +298,7 @@ export default function ATSScannerPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Lightbulb className="h-5 w-5 text-yellow-500" />
-                    Recommendations
+                    {t("atsScanner.recommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -314,7 +316,7 @@ export default function ATSScannerPage() {
 
             <Button variant="outline" onClick={() => { setResult(null); }} className="gap-2">
               <RefreshCw className="h-4 w-4" />
-              Analyze Another Resume
+              {t("atsScanner.reset")}
             </Button>
           </div>
         )}
