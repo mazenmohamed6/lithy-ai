@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -19,8 +19,10 @@ export class AuthController {
   @Post('signup')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user' })
-  async signUp(@Body() body: { email: string; password: string; phone?: string; metadata?: any }) {
-    const result = await this.authService.signUp(body.email, body.password, body.phone, body.metadata);
+  async signUp(@Body() body: { email: string; password: string; phone?: string; metadata?: any }, @Req() req: any) {
+    const ipAddress = (typeof req.headers?.['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0]?.trim() : undefined) || req.socket?.remoteAddress || req.ip;
+    const userAgent = req.headers?.['user-agent'];
+    const result = await this.authService.signUp(body.email, body.password, body.phone, { ...body.metadata, ipAddress, userAgent });
 
     if (result.requiresPayment && result.planName) {
       const frontendUrl = this.configService.get<string>('FRONTEND_URL') || process.env.FRONTEND_URL || 'https://lithy-ai.vercel.app';
@@ -102,8 +104,10 @@ export class AuthController {
   @Post('sync')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Sync OAuth user to local database' })
-  async syncUser(@Body() body: { userId: string; email: string; phone?: string; metadata?: Record<string, any> }) {
-    return this.authService.syncUser(body.userId, body.email, body.phone, body.metadata);
+  async syncUser(@Body() body: { userId: string; email: string; phone?: string; metadata?: Record<string, any> }, @Req() req: any) {
+    const ipAddress = (typeof req.headers?.['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0]?.trim() : undefined) || req.socket?.remoteAddress || req.ip;
+    const userAgent = req.headers?.['user-agent'];
+    return this.authService.syncUser(body.userId, body.email, body.phone, { ...body.metadata, ipAddress, userAgent });
   }
 
   @Post('phone/verify')

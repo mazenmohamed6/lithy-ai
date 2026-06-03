@@ -41,7 +41,7 @@ export class AntiAbuseService {
     isReturningUser: boolean;
     wasLinked: boolean;
   }> {
-    const { email, phone, deviceFingerprint, browserFingerprint, oauthProvider, oauthId } = signals;
+    const { email, phone, deviceFingerprint, browserFingerprint, oauthProvider, oauthId, ipAddress, userAgent } = signals;
 
     // 1. Search existing ledgers matching ANY signal
     const existingLedgerIds = new Set<string>();
@@ -116,6 +116,34 @@ export class AntiAbuseService {
       }
     }
 
+    if (ipAddress) {
+      const byIp = await this.prisma.linkedAccount.findMany({
+        where: { ipAddresses: { array_contains: ipAddress } },
+        select: { ledgerId: true },
+        distinct: ['ledgerId'],
+      });
+      for (const match of byIp) {
+        if (!existingLedgerIds.has(match.ledgerId)) {
+          existingLedgerIds.add(match.ledgerId);
+          signalMatches.push({ ledgerId: match.ledgerId, signal: 'ip', weight: 8 });
+        }
+      }
+    }
+
+    if (userAgent) {
+      const byUa = await this.prisma.linkedAccount.findMany({
+        where: { userAgents: { array_contains: userAgent } },
+        select: { ledgerId: true },
+        distinct: ['ledgerId'],
+      });
+      for (const match of byUa) {
+        if (!existingLedgerIds.has(match.ledgerId)) {
+          existingLedgerIds.add(match.ledgerId);
+          signalMatches.push({ ledgerId: match.ledgerId, signal: 'user_agent', weight: 5 });
+        }
+      }
+    }
+
     // 2. If we found existing ledgers, pick the best match (most signal weight)
     if (signalMatches.length > 0) {
       const grouped = new Map<string, { ledgerId: string; totalWeight: number; signals: string[] }>();
@@ -141,7 +169,7 @@ export class AntiAbuseService {
           details: {
             matchedSignals: bestMatch.signals,
             totalWeight: bestMatch.totalWeight,
-            newSignals: { email, phone, deviceFingerprint, browserFingerprint, oauthProvider, oauthId },
+            newSignals: { email, phone, deviceFingerprint, browserFingerprint, oauthProvider, oauthId, ipAddress, userAgent },
           },
         },
       });
@@ -162,7 +190,7 @@ export class AntiAbuseService {
       data: {
         ledgerId: ledger.id,
         eventType: 'ACCOUNT_CREATED',
-        details: { signals: { email, phone, deviceFingerprint, browserFingerprint } },
+        details: { signals: { email, phone, deviceFingerprint, browserFingerprint, ipAddress, userAgent } },
       },
     });
 
@@ -243,7 +271,9 @@ export class AntiAbuseService {
   // ── Free-Plan Eligibility ─────────────────────────────────────────────
 
   async checkFreePlanEligibility(userId: string, signals: IdentitySignals): Promise<EligibilityResult> {
-    const { ledger, isReturningUser } = await this.findOrCreateLedger(signals);
+    const { ledger, isReturningUser, wasLinked } = await this.findOrCreateLedger(signals);
+
+    this.logger.log(`checkFreePlanEligibility userId=${userId} signals=${JSON.stringify({ email: signals.email?.substring(0,3)+'***', phone: signals.phone ? '***'+signals.phone.slice(-4) : undefined, deviceFingerprint: signals.deviceFingerprint ? signals.deviceFingerprint.substring(0,8)+'...' : undefined, browserFingerprint: signals.browserFingerprint ? signals.browserFingerprint.substring(0,8)+'...' : undefined, ipAddress: signals.ipAddress, userAgent: signals.userAgent?.substring(0,50) })} ledger=${ledger.id} isReturning=${isReturningUser} wasLinked=${wasLinked}`);
 
     if (isReturningUser) {
       // Aggregate usage from all active linked accounts too
@@ -268,8 +298,11 @@ export class AntiAbuseService {
       const totalAts = ledger.totalAtsScans + activeAts;
       const hasPhone = signals.phone || ledger.phone;
 
+      this.logger.log(`checkFreePlanEligibility userId=${userId} result=RETURNING ledger=${ledger.id} risk=${ledger.riskLevel} exhausted=${ledger.freePlanExhausted} totalAi=${totalAi} totalAts=${totalAts}`);
+
       // Risk-based restrictions (soft, not hard blocks)
       if (ledger.riskLevel === 'HIGH_RISK' || ledger.riskLevel === 'SUSPICIOUS') {
+        this.logger.warn(`checkFreePlanEligibility userId=${userId} result=DENIED_RISK ledger=${ledger.id} risk=${ledger.riskLevel} score=${ledger.riskScore}`);
         // Don't grant free credits for high/suspicious risk levels
         await this.prisma.riskEvent.create({
           data: {
@@ -302,6 +335,7 @@ export class AntiAbuseService {
       }
 
       if (ledger.riskLevel === 'MONITOR' && !hasPhone) {
+        this.logger.warn(`checkFreePlanEligibility userId=${userId} result=DENIED_PHONE ledger=${ledger.id} risk=${ledger.riskLevel}`);
         // Medium risk without phone — require verification
         await this.prisma.riskEvent.create({
           data: {
@@ -333,6 +367,8 @@ export class AntiAbuseService {
       }
 
       if (ledger.freePlanExhausted) {
+        this.logger.warn(`checkFreePlanEligibility userId=${userId} result=EXHAUSTED ledger=${ledger.id} totalAi=${totalAi} totalAts=${totalAts}`);
+
         await this.prisma.riskEvent.create({
           data: {
             ledgerId: ledger.id,
@@ -396,6 +432,8 @@ export class AntiAbuseService {
         message: `Previous usage restored. ${totalAi} AI generations, ${totalAts} ATS scans already consumed.`,
       };
     }
+
+    this.logger.log(`checkFreePlanEligibility userId=${userId} result=NEW_USER ledger=${ledger.id} — free plan activated`);
 
     // New user — activate free plan
     await this.prisma.identityLedger.update({

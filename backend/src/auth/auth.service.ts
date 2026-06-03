@@ -35,6 +35,8 @@ export class AuthService {
     // Extract anti-abuse signals from metadata
     const deviceFingerprint = metadata?.deviceFingerprint as string | undefined;
     const browserFingerprint = metadata?.browserFingerprint as string | undefined;
+    const ipAddress = metadata?.ipAddress as string | undefined;
+    const userAgent = metadata?.userAgent as string | undefined;
 
     if (phone) {
       const existingPhone = await this.prisma.userProfile.findFirst({ where: { phone } });
@@ -75,6 +77,8 @@ export class AuthService {
       phone,
       deviceFingerprint,
       browserFingerprint,
+      ipAddress,
+      userAgent,
     });
 
     await this.prisma.user.create({
@@ -96,6 +100,8 @@ export class AuthService {
       phone,
       deviceFingerprint,
       browserFingerprint,
+      ipAddress,
+      userAgent,
     });
 
     const selectedPlan = metadata?.selectedPlan || 'free';
@@ -239,6 +245,8 @@ export class AuthService {
 
     const deviceFingerprint = metadata?.deviceFingerprint as string | undefined;
     const browserFingerprint = metadata?.browserFingerprint as string | undefined;
+    const ipAddress = metadata?.ipAddress as string | undefined;
+    const userAgent = metadata?.userAgent as string | undefined;
 
     if (phone) {
       const existingPhone = await this.prisma.userProfile.findFirst({ where: { phone } });
@@ -258,6 +266,8 @@ export class AuthService {
       phone,
       deviceFingerprint,
       browserFingerprint,
+      ipAddress,
+      userAgent,
     });
 
     await this.prisma.user.create({
@@ -276,6 +286,8 @@ export class AuthService {
       phone,
       deviceFingerprint,
       browserFingerprint,
+      ipAddress,
+      userAgent,
     });
 
     const freePlan = await this.prisma.subscriptionPlan.findFirst({
