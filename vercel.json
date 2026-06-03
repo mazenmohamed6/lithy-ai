@@ -1,6 +1,7 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd frontend && npx next build",
-  "outputDirectory": "frontend/.next",
-  "installCommand": "npm install --no-package-lock --legacy-peer-deps"
+  "buildCommand": "npx next build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install --no-package-lock --legacy-peer-deps",
+  "rootDirectory": "frontend"
 }
