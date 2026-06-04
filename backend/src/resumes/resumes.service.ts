@@ -266,81 +266,140 @@ export class ResumesService {
     const contact = (resume.sections as any[]).find((s) => s.id === 'contact')?.fields || {};
     const templateId = resume.templateId || 'default';
 
-    const sectionHtml = (resume.sections as any[])
-      .filter((s) => s.id !== 'contact' && s.enabled !== false)
-      .map((s) => {
-        if (s.id === 'summary') return `<section><h2>${s.title}</h2><p>${s.content || ''}</p></section>`;
-        if (s.id === 'skills') return `<section><h2>${s.title}</h2><p>${(s.items || []).join(' • ')}</p></section>`;
+    const secHtml = (s: any) => {
+      const body = (s: any) => {
+        if (s.id === 'summary') return `<p class="res-text-body">${s.content || ''}</p>`;
+        if (s.id === 'skills') return `<div class="res-skills">${(s.items || []).map((sk: string) => `<span class="res-skill-tag">${sk}</span>`).join('')}</div>`;
         if (s.items?.length) {
-          const items = s.items.map((i: any) => `
-            <div class="item">
-              <div class="item-header"><strong>${i.title || i.rank || ''}</strong> <span>${i.startDate || ''}${i.startDate ? ' - ' : ''}${i.current ? 'Present' : i.endDate || ''}</span></div>
-              <div class="item-sub">${i.company || i.institution || i.branch || ''}</div>
-              <p>${i.description || ''}</p>
+          return s.items.map((i: any) => `
+            <div class="res-item">
+              <div class="res-item-header"><span class="res-item-title">${i.title || i.degree || i.rank || i.name || ''}</span> <span class="res-item-date">${i.startDate || ''}${i.startDate ? ' – ' : ''}${i.current ? 'Present' : i.endDate || ''}</span></div>
+              <div class="res-item-sub">${i.company || i.institution || i.branch || ''}</div>
+              ${i.description ? `<p class="res-item-desc">${i.description}</p>` : ''}
+              ${i.gpa ? `<p class="res-item-desc">GPA: ${i.gpa}</p>` : ''}
             </div>`).join('');
-          return `<section><h2>${s.title}</h2>${items}</section>`;
         }
         return '';
-      }).join('');
+      };
+      const heading = (() => {
+        if (templateId === 'modern') return `<div class="res-sec-header-modern"><span>${s.title}</span></div>`;
+        if (templateId === 'creative') return `<div class="res-sec-header-creative"><span class="res-sec-accent"></span>${s.title}</div>`;
+        if (templateId === 'professional') return `<div class="res-sec-header-prof"><span class="res-sec-prof-text">${s.title}</span><span class="res-sec-prof-line"></span></div>`;
+        if (templateId === 'minimal') return `<div class="res-sec-header-min">${s.title}</div>`;
+        return `<div class="res-sec-header-classic"><span class="res-sec-classic-text">${s.title}</span></div>`;
+      })();
+      return `<section>${heading}${body(s)}</section>`;
+    };
 
-    let templateCss = '';
+    const sectionHtml = (resume.sections as any[])
+      .filter((s) => s.id !== 'contact' && s.enabled !== false)
+      .map(secHtml).join('');
+
+    const items = [contact.email, contact.phone, contact.location].filter(Boolean);
+
+    let css = '';
     let headerHtml = '';
 
     if (templateId === 'modern') {
-      templateCss = `
-        body{font-family:'Inter',system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.6}
-        .header-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px;background:#f8fafc;border-radius:8px;margin-bottom:16px}
-        .header-grid h1{font-size:20px;font-weight:700;grid-column:1/-1;margin:0}
-        .header-grid .contact-item{font-size:13px;color:#475569}
-        h2{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#64748b;border:none;margin-top:20px;margin-bottom:8px}
-        .item{margin-bottom:12px;padding-left:8px;border-left:2px solid #e2e8f0}
-        .item-header{display:flex;justify-content:space-between;font-size:14px}
-        .item-sub{color:#666;font-size:13px} p{font-size:14px;margin:4px 0}`;
-      headerHtml = `<div class="header-grid"><h1>${contact.fullName || resume.title}</h1><div class="contact-item">${contact.email || ''}</div><div class="contact-item">${contact.phone || ''}</div><div class="contact-item">${contact.location || ''}</div></div>`;
+      css = `
+.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1e293b;line-height:1.5}
+.res-contact{background:#f1f5f9;border-radius:10px;padding:20px 24px;margin-bottom:20px}
+.res-name{font-size:22px;font-weight:700;color:#0f172a;margin:0 0 8px}
+.res-contact-grid{display:flex;flex-wrap:wrap;gap:6px}
+.res-contact-chip{font-size:12px;color:#475569;background:#fff;padding:4px 12px;border-radius:20px}
+.res-sec-header-modern{margin:18px 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#3b82f6}
+.res-item{margin-bottom:12px;padding-left:14px;border-left:2px solid #e2e8f0}
+.res-item-header{display:flex;justify-content:space-between;align-items:baseline}
+.res-item-title{font-size:14px;font-weight:600;color:#0f172a}
+.res-item-date{font-size:11px;color:#94a3b8}
+.res-item-sub{font-size:12px;color:#3b82f6;font-weight:500;margin-bottom:2px}
+.res-item-desc{font-size:12px;color:#475569;margin:2px 0 0;line-height:1.5}
+.res-text-body{font-size:12px;color:#475569;line-height:1.6}
+.res-skills{display:flex;flex-wrap:wrap;gap:6px}
+.res-skill-tag{font-size:11px;color:#1e293b;background:#eef2ff;padding:4px 12px;border-radius:6px;font-weight:500}`;
+      headerHtml = `<div class="res-contact res-root" style="margin-top:0"><h1 class="res-name">${contact.fullName || resume.title}</h1><div class="res-contact-grid">${items.map((i) => `<span class="res-contact-chip">${i}</span>`).join('')}</div></div>`;
     } else if (templateId === 'minimal') {
-      templateCss = `
-        body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.6}
-        h1{font-size:28px;font-weight:400;letter-spacing:.02em;margin-bottom:4px}
-        .contact{color:#888;font-size:13px;margin-bottom:24px}
-        h2{font-size:16px;font-weight:400;border-bottom:1px solid #ddd;padding-bottom:2px;margin-top:24px;margin-bottom:12px;color:#444}
-        .item{margin-bottom:10px} .item-header{display:flex;justify-content:space-between;font-size:14px}
-        .item-sub{color:#888;font-size:13px;font-style:italic} p{font-size:14px;margin:4px 0}`;
-      headerHtml = `<h1>${contact.fullName || resume.title}</h1><div class="contact">${[contact.email, contact.phone, contact.location].filter(Boolean).join(' | ')}</div>`;
+      css = `
+.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#333;line-height:1.5}
+.res-header-minimal{text-align:center;margin-bottom:24px}
+.res-name{font-size:30px;font-weight:200;letter-spacing:3px;color:#111;margin:0 0 6px;text-transform:uppercase}
+.res-contact-bar{font-size:10px;color:#999;letter-spacing:1px;margin:0}
+.res-sec-header-min{font-size:13px;font-weight:300;text-transform:uppercase;letter-spacing:3px;color:#888;margin:20px 0 10px;padding-top:12px;border-top:1px solid #eee}
+.res-item{margin-bottom:10px}
+.res-item-header{display:flex;justify-content:space-between;align-items:baseline}
+.res-item-title{font-size:13px;font-weight:500;color:#111}
+.res-item-date{font-size:10px;color:#aaa}
+.res-item-sub{font-size:11px;color:#666;margin-bottom:1px}
+.res-item-desc{font-size:11px;color:#555;margin:1px 0 0;line-height:1.5}
+.res-text-body{font-size:12px;color:#555;line-height:1.7}
+.res-skills{display:flex;flex-wrap:wrap;gap:4px}
+.res-skill-tag{font-size:10px;color:#666;padding:2px 8px;border:1px solid #eee;letter-spacing:.5px}`;
+      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-minimal"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  /  ')}</p></div></div>`;
     } else if (templateId === 'professional') {
-      templateCss = `
-        body{font-family:'Times New Roman',serif;max-width:800px;margin:40px auto;padding:20px;color:#2d3748;line-height:1.5}
-        h1{font-size:26px;font-weight:700;color:#1a365d;margin-bottom:4px}
-        .contact{font-size:13px;color:#2d3748;margin-bottom:24px}
-        h2{font-size:16px;font-weight:700;color:#1a365d;border-bottom:2px solid #1a365d;padding-bottom:4px;margin-top:24px;margin-bottom:12px}
-        .item{margin-bottom:12px} .item-header{display:flex;justify-content:space-between;font-size:14px;font-weight:500}
-        .item-sub{color:#555;font-size:13px} p{font-size:14px;margin:4px 0}`;
-      headerHtml = `<h1>${contact.fullName || resume.title}</h1><div class="contact">${[contact.email, contact.phone, contact.location].filter(Boolean).join(' | ')}</div>`;
+      css = `
+.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:Georgia,'Times New Roman',serif;color:#2c3e50;line-height:1.5}
+.res-header-professional{text-align:center;margin-bottom:20px;padding:0 40px}
+.res-prof-rule-top{width:100%;height:2px;background:#1e3a5f;margin-bottom:12px}
+.res-name{font-size:28px;font-weight:700;color:#1e3a5f;letter-spacing:2px;margin:0 0 4px;text-transform:uppercase}
+.res-contact-bar{font-size:11px;color:#5a6b7d;letter-spacing:.5px;margin:0 0 10px}
+.res-prof-rule-bottom{width:80px;height:1px;background:#c9952c;margin:0 auto}
+.res-sec-header-prof{display:flex;align-items:center;gap:12px;margin:18px 0 10px}
+.res-sec-prof-text{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#1e3a5f;white-space:nowrap}
+.res-sec-prof-line{flex:1;height:1px;background:#1e3a5f}
+.res-item{margin-bottom:12px}
+.res-item-header{display:flex;justify-content:space-between;align-items:baseline}
+.res-item-title{font-size:14px;font-weight:700;color:#1e3a5f}
+.res-item-date{font-size:11px;color:#7f8c8d}
+.res-item-sub{font-size:12px;font-weight:600;color:#c9952c;margin-bottom:2px}
+.res-item-desc{font-size:12px;color:#444;margin:2px 0 0;line-height:1.5}
+.res-text-body{font-size:12px;color:#444;line-height:1.6}
+.res-skills{display:flex;flex-wrap:wrap;gap:6px}
+.res-skill-tag{font-size:11px;color:#2c3e50;background:#edf2f7;padding:3px 10px}`;
+      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-professional"><div class="res-prof-rule-top"></div><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-prof-rule-bottom"></div></div></div>`;
     } else if (templateId === 'creative') {
-      templateCss = `
-        body{font-family:'Inter',system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.6}
-        .creative-header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:24px;border-radius:8px;margin-bottom:16px;text-align:center}
-        .creative-header h1{font-size:24px;font-weight:700;color:white;margin:0 0 4px}
-        .creative-header .contact{color:rgba(255,255,255,.85);font-size:13px}
-        h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#667eea;border:none;margin-top:20px;margin-bottom:8px}
-        .item{background:#fafafa;padding:8px 12px;border-radius:6px;margin-bottom:8px;border-left:3px solid #667eea}
-        .item-header{display:flex;justify-content:space-between;font-size:14px}
-        .item-sub{color:#666;font-size:13px} p{font-size:14px;margin:4px 0}`;
-      headerHtml = `<div class="creative-header"><h1>${contact.fullName || resume.title}</h1><div class="contact">${[contact.email, contact.phone, contact.location].filter(Boolean).join(' | ')}</div></div>`;
+      css = `
+.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#18181b;line-height:1.5}
+.res-header-creative{background:linear-gradient(135deg,#f43f5e 0%,#fb7185 50%,#e11d48 100%);color:#fff;padding:28px 32px;border-radius:6px;margin-bottom:20px;text-align:center}
+.res-name{font-size:26px;font-weight:800;color:#fff;margin:0 0 4px;letter-spacing:-.5px}
+.res-contact-bar{font-size:12px;color:rgba(255,255,255,.9);letter-spacing:.3px;margin:0}
+.res-sec-header-creative{display:flex;align-items:center;gap:10px;margin:20px 0 10px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#18181b}
+.res-sec-accent{width:4px;height:18px;background:#f43f5e;border-radius:2px;display:inline-block}
+.res-item{margin-bottom:10px;background:#fafafa;padding:12px 14px;border-radius:6px;border-left:3px solid #f43f5e}
+.res-item-header{display:flex;justify-content:space-between;align-items:baseline}
+.res-item-title{font-size:14px;font-weight:600;color:#18181b}
+.res-item-date{font-size:11px;color:#71717a}
+.res-item-sub{font-size:12px;color:#f43f5e;font-weight:500;margin-bottom:2px}
+.res-item-desc{font-size:12px;color:#52525b;margin:2px 0 0;line-height:1.5}
+.res-text-body{font-size:12px;color:#52525b;line-height:1.6}
+.res-skills{display:flex;flex-wrap:wrap;gap:6px}
+.res-skill-tag{font-size:11px;color:#18181b;background:#fce7f3;padding:4px 12px;border-radius:20px;font-weight:500}`;
+      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-creative"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  ·  ')}</p></div></div>`;
     } else {
-      templateCss = `
-        body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#1a1a1a;line-height:1.6}
-        h1{font-size:24px;margin-bottom:4px} .contact{color:#666;font-size:14px;margin-bottom:24px}
-        h2{font-size:18px;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}
-        .item{margin-bottom:16px} .item-header{display:flex;justify-content:space-between;font-size:14px}
-        .item-sub{color:#666;font-size:13px} p{font-size:14px;margin:4px 0}`;
-      headerHtml = `<h1>${contact.fullName || resume.title}</h1><div class="contact">${[contact.email, contact.phone, contact.location].filter(Boolean).join(' | ')}</div>`;
+      css = `
+.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:Georgia,'Times New Roman',serif;color:#2d2d2d;line-height:1.5}
+.res-header-classic{text-align:center;margin-bottom:20px}
+.res-name{font-size:26px;font-weight:700;letter-spacing:1px;color:#1a1a1a;margin:0 0 4px}
+.res-contact-bar{font-size:11px;color:#666;letter-spacing:.5px;margin:0 0 10px}
+.res-classic-rule{height:0;border-top:2px solid #c9952c;width:60px;margin:0 auto}
+.res-sec-header-classic{margin:16px 0 10px;text-align:center;border-top:1px solid #ddd;line-height:0}
+.res-sec-classic-text{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#c9952c;background:#fff;padding:0 12px}
+.res-item{margin-bottom:12px}
+.res-item-header{display:flex;justify-content:space-between;align-items:baseline}
+.res-item-title{font-size:14px;font-weight:700;color:#1a1a1a}
+.res-item-date{font-size:11px;color:#888;font-style:italic}
+.res-item-sub{font-size:12px;font-weight:600;color:#c9952c;margin-bottom:2px}
+.res-item-desc{font-size:12px;color:#444;margin:2px 0 0;line-height:1.5}
+.res-text-body{font-size:12px;color:#444;line-height:1.6}
+.res-skills{display:flex;flex-wrap:wrap;gap:6px}
+.res-skill-tag{font-size:11px;color:#555;background:#f5f2eb;padding:3px 10px;border-radius:2px}`;
+      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-classic"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-classic-rule"></div></div></div>`;
     }
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${resume.title}</title>
-<style>${templateCss}</style></head><body>
+<style>${css}</style></head><body>
   ${headerHtml}
-  ${sectionHtml}
+  <div class="res-root">${sectionHtml}</div>
 </body></html>`;
   }
 

@@ -32,6 +32,44 @@ export default function ResumeEditorPage() {
   const [userPlan, setUserPlan] = useState<string>("FREE");
   const canAccessPremium = userPlan === "PRO" || userPlan === "PREMIUM" || userPlan === "PRO_ANNUAL" || userPlan === "PREMIUM_ANNUAL";
 
+  const templatePreviews = {
+    default: {
+      style: { fontFamily: "Georgia,serif", background: "#faf8f4" },
+      headerStyle: { background: "#fff", padding: "4px 4px 2px", borderBottom: "2px solid #c9952c", textAlign: "center" as const },
+      header: <><div style={{fontWeight:700,fontSize:8,color:"#1a1a1a"}}>JOHN DOE</div><div style={{fontSize:5,color:"#888"}}>john@email.com</div></>,
+      bodyStyle: { padding: "3px 4px" },
+      lineStyle: { height: 3, background: "#ddd", marginTop: 2, borderRadius: 1 },
+    },
+    modern: {
+      style: { fontFamily: "'Inter',sans-serif", background: "#f8fafc" },
+      headerStyle: { background: "#f1f5f9", padding: "4px", textAlign: "center" as const },
+      header: <><div style={{fontWeight:700,fontSize:8,color:"#0f172a"}}>JOHN DOE</div><div style={{fontSize:5,color:"#3b82f6",marginTop:1}}>john@email.com</div></>,
+      bodyStyle: { padding: "3px 4px" },
+      lineStyle: { height: 3, background: "#e2e8f0", marginTop: 2, borderRadius: 1, borderLeft: "2px solid #3b82f6" },
+    },
+    minimal: {
+      style: { fontFamily: "'Helvetica Neue',Arial,sans-serif", background: "#fff" },
+      headerStyle: { padding: "6px 4px 2px", textAlign: "center" as const },
+      header: <><div style={{fontWeight:200,fontSize:9,letterSpacing:1,color:"#111",textTransform:"uppercase"}}>JOHN DOE</div><div style={{fontSize:5,color:"#aaa"}}>john@email.com</div></>,
+      bodyStyle: { padding: "3px 4px" },
+      lineStyle: { height: 2, background: "#eee", marginTop: 2 },
+    },
+    professional: {
+      style: { fontFamily: "Georgia,serif", background: "#fcfcfc" },
+      headerStyle: { padding: "4px", textAlign: "center" as const },
+      header: <><div style={{height:2,background:"#1e3a5f",marginBottom:2,marginLeft:12,marginRight:12}} /><div style={{fontWeight:700,fontSize:8,letterSpacing:0.5,color:"#1e3a5f",textTransform:"uppercase"}}>JOHN DOE</div><div style={{fontSize:5,color:"#5a6b7d"}}>john@email.com</div><div style={{width:16,height:1,background:"#c9952c",margin:"2px auto 0"}} /></>,
+      bodyStyle: { padding: "3px 4px" },
+      lineStyle: { height: 3, background: "#edf2f7", marginTop: 2 },
+    },
+    creative: {
+      style: { fontFamily: "'Inter',sans-serif", background: "#fef9fb" },
+      headerStyle: { background: "linear-gradient(135deg,#f43f5e,#e11d48)", padding: "6px 4px", textAlign: "center" as const },
+      header: <><div style={{fontWeight:800,fontSize:8,color:"#fff"}}>JOHN DOE</div><div style={{fontSize:5,color:"rgba(255,255,255,.85)"}}>john@email.com</div></>,
+      bodyStyle: { padding: "3px 4px" },
+      lineStyle: { height: 3, background: "#fce7f3", marginTop: 2, borderRadius: 2 },
+    },
+  };
+
   const saveResume = useCallback(async () => {
     setSaveStatus("saving");
     try {
@@ -227,30 +265,41 @@ export default function ResumeEditorPage() {
           </div>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase">Template</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {RESUME_TEMPLATES.map((t) => {
               const locked = t.premium && !canAccessPremium;
+              const selected = resume?.templateId === t.id || (isNew && t.id === "default");
+              const preview = templatePreviews[t.id as keyof typeof templatePreviews] || templatePreviews.default;
               return (
-                <Button
+                <button
                   key={t.id}
-                  variant={resume?.templateId === t.id || (isNew && t.id === "default") ? "default" : "outline"}
-                  size="sm"
-                  className="text-xs"
                   disabled={locked}
                   onClick={() => {
-                    if (locked) {
-                      toast.error("Premium templates require a Pro or Premium plan. Upgrade to access this template.");
-                      return;
-                    }
+                    if (locked) { toast.error("Premium templates require a Pro or Premium plan. Upgrade to access this template."); return; }
                     setResume((prev: any) => ({ ...prev, templateId: t.id }));
                   }}
+                  className={`relative flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${selected ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border hover:border-primary/50"} ${locked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
-                  {locked && <Lock className="h-3 w-3 mr-1" />}
-                  {!locked && t.premium && <Crown className="h-3 w-3 mr-1 text-amber-500" />}
-                  {t.name}
-                </Button>
+                  <div className="flex-shrink-0 w-14 h-16 rounded overflow-hidden border flex flex-col text-[7px] leading-tight" style={preview.style}>
+                    <div style={preview.headerStyle}>{preview.header}</div>
+                    <div className="p-1 space-y-0.5" style={preview.bodyStyle}>
+                      <div style={preview.lineStyle} />
+                      <div style={preview.lineStyle} className="w-3/4" />
+                      <div style={preview.lineStyle} className="w-1/2" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium">{t.name}</span>
+                      {t.premium && !locked && <Crown className="h-3 w-3 text-amber-500" />}
+                      {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                      {selected && <CheckCircle2 className="h-3 w-3 text-primary ml-auto" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
+                  </div>
+                </button>
               );
             })}
           </div>
