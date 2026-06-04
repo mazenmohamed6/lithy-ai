@@ -7,8 +7,13 @@ import { AntiAbuseService } from '../anti-abuse/anti-abuse.service';
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private openai: OpenAI;
+  private openai: OpenAI | null = null;
   private readonly model: string;
+
+  private ensureAi() {
+    if (!this.openai) throw new BadRequestException('AI service not configured: missing GROQ_API_KEY');
+    return this.openai;
+  }
 
   constructor(
     private configService: ConfigService,
@@ -16,13 +21,12 @@ export class AiService {
     private antiAbuseService: AntiAbuseService,
   ) {
     const apiKey = this.configService.get<string>('GROQ_API_KEY');
-    if (!apiKey) {
-      throw new Error('GROQ_API_KEY is not set. Get a free key at https://console.groq.com');
+    if (apiKey) {
+      this.openai = new OpenAI({
+        apiKey,
+        baseURL: 'https://api.groq.com/openai/v1',
+      });
     }
-    this.openai = new OpenAI({
-      apiKey,
-      baseURL: 'https://api.groq.com/openai/v1',
-    });
     this.model = this.configService.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile';
   }
 
@@ -65,7 +69,7 @@ export class AiService {
       const systemPrompt = this.buildResumeSystemPrompt(data.tone, data.keywords, data.focusArea);
       const userPrompt = this.buildResumeUserPrompt(data.sections);
 
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.ensureAi().chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -91,7 +95,7 @@ export class AiService {
     await this.checkUsageLimit(userId, 'RESUME_IMPROVEMENT');
 
     try {
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.ensureAi().chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: "You are an expert resume writer. Improve the resume sections based on the user's instructions. Return JSON with improved sections." },
@@ -116,7 +120,7 @@ export class AiService {
     await this.checkUsageLimit(userId, 'COVER_LETTER');
 
     try {
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.ensureAi().chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: this.buildCoverLetterSystemPrompt(data.tone) },
@@ -145,7 +149,7 @@ export class AiService {
     await this.checkUsageLimit(userId, 'ATS_SCAN');
 
     try {
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.ensureAi().chat.completions.create({
         model: this.model,
         messages: [
           {
@@ -179,7 +183,7 @@ export class AiService {
     await this.checkUsageLimit(userId, 'JOB_MATCH');
 
     try {
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.ensureAi().chat.completions.create({
         model: this.model,
         messages: [
           {
@@ -213,7 +217,7 @@ export class AiService {
     await this.checkUsageLimit(userId, 'LINKEDIN_OPTIMIZATION');
 
     try {
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.ensureAi().chat.completions.create({
         model: this.model,
         messages: [
           {

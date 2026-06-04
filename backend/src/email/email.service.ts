@@ -12,7 +12,8 @@ export class EmailService {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY')!);
+    const key = this.configService.get<string>('RESEND_API_KEY');
+    if (key) this.resend = new Resend(key);
   }
 
   async sendWelcomeEmail(userId: string, email: string, name: string) {
@@ -100,6 +101,10 @@ export class EmailService {
   }
 
   private async sendEmail(data: { userId?: string; to: string; subject: string; type: string; html: string }) {
+    if (!this.resend) {
+      this.logger.warn(`Email not sent: RESEND_API_KEY not configured (to=${data.to}, type=${data.type})`);
+      return;
+    }
     try {
       const result = await this.resend.emails.send({
         from: 'LITHY AI <noreply@lithyai.com>',

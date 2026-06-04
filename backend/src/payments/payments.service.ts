@@ -6,15 +6,23 @@ import { PrismaService } from '../common/prisma.service';
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
-  private stripe: Stripe;
+  private stripe: Stripe | null = null;
+
+  private ensureStripe() {
+    if (!this.stripe) throw new BadRequestException('Payments not configured: missing STRIPE_SECRET_KEY');
+    return this.stripe;
+  }
 
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY')!, {
-      apiVersion: '2025-02-24.acacia',
-    });
+    const key = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (key) {
+      this.stripe = new Stripe(key, {
+        apiVersion: '2025-02-24.acacia',
+      });
+    }
   }
 
   async createCheckoutSession(userId: string, priceId: string, successUrl: string, cancelUrl: string, trialDays: number = 7) {
@@ -43,7 +51,7 @@ export class PaymentsService {
       sessionParams.customer_email = user.email;
     }
 
-    const session = await this.stripe.checkout.sessions.create(sessionParams);
+    const session = await this.ensureStripe().checkout.sessions.create(sessionParams);
 
     return { url: session.url, sessionId: session.id };
   }
@@ -62,7 +70,7 @@ export class PaymentsService {
     const pack = await this.prisma.addonPack.findUnique({ where: { id: packId } });
     if (!pack) throw new BadRequestException('Add-on pack not found');
 
-    const session = await this.stripe.checkout.sessions.create({
+    const session = await this.ensureStripe().checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [{
@@ -88,7 +96,7 @@ export class PaymentsService {
       throw new BadRequestException('No active subscription');
     }
 
-    const session = await this.stripe.billingPortal.sessions.create({
+    const session = await this.ensureStripe().billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
       return_url: returnUrl,
     });
@@ -97,11 +105,12 @@ export class PaymentsService {
   }
 
   async handleWebhook(rawBody: Buffer, signature: string) {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET')!;
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    if (!webhookSecret) throw new BadRequestException('Stripe webhook not configured');
 
     let event: Stripe.Event;
     try {
-      event = this.stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+      event = this.ensureStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (err) {
       throw new BadRequestException('Invalid webhook signature');
     }
@@ -134,7 +143,7 @@ export class PaymentsService {
     if (!userId) return;
 
     if (session.mode === 'subscription') {
-      const stripeSub = await this.stripe.subscriptions.retrieve(session.subscription as string);
+      const stripeSub = await this.ensureStripe().subscriptions.retrieve(session.subscription as string);
 
       const stripePriceId = stripeSub.items.data[0]?.price?.id;
       const plan = stripePriceId
@@ -318,7 +327,7 @@ export class PaymentsService {
 
   async cancelStripeSubscription(stripeSubscriptionId: string) {
     try {
-      await this.stripe.subscriptions.update(stripeSubscriptionId, {
+      await this.ensureStripe().subscriptions.update(stripeSubscriptionId, {
         cancel_at_period_end: true,
       });
     } catch (err) {
