@@ -7,6 +7,8 @@ import * as path from 'path';
 import mammoth from 'mammoth';
 const PDFDocument = require('pdfkit');
 const pdfjsLib = require('pdfjs-dist');
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 @Injectable()
 export class ResumesService {
@@ -343,6 +345,37 @@ export class ResumesService {
   }
 
   async exportPdf(id: string, userId: string): Promise<Buffer> {
+    try {
+      return await this.exportPdfWithChrome(id, userId);
+    } catch (err) {
+      this.logger.warn(`Chromium PDF failed, falling back to PDFKit: ${err}`);
+      return this.exportPdfWithPdfkit(id, userId);
+    }
+  }
+
+  private async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
+    const html = await this.exportHtml(id, userId);
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 800, height: 1100 },
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      const pdf = await page.pdf({
+        format: 'Letter',
+        printBackground: true,
+        margin: { top: '0.6in', bottom: '0.6in', left: '0.6in', right: '0.6in' },
+      });
+      return Buffer.from(pdf);
+    } finally {
+      await browser.close();
+    }
+  }
+
+  private async exportPdfWithPdfkit(id: string, userId: string): Promise<Buffer> {
     const resume = await this.findById(id, userId);
     const sections = resume.sections as any[];
     const contact = sections.find((s) => s.id === 'contact')?.fields || {};
@@ -380,8 +413,6 @@ export class ResumesService {
         });
         doc.y = startY + Math.ceil(contactGrid.length / 2) * 12 + 4;
       }
-      doc.moveDown(0.3);
-      const y2 = doc.y; doc.moveTo(ml, y2).lineTo(ml + pw, y2).strokeColor('#e2e8f0').lineWidth(1).stroke();
       doc.moveDown(0.5);
     } else if (templateId === 'minimal') {
       doc.fontSize(28).font('Helvetica').fillColor('#111')
@@ -415,9 +446,6 @@ export class ResumesService {
 
     /*** SECTIONS ***/
     sections.filter((s) => s.id !== 'contact' && s.enabled !== false).forEach((section) => {
-      const isClassic = templateId === 'classic' || templateId === 'default';
-
-      // Section title
       let secFontSize: number, secFont: string, secColor: string, hasUnderline: boolean, underlineW: number;
       if (templateId === 'modern') {
         secFontSize = 10; secFont = 'Helvetica-Bold'; secColor = '#64748b'; hasUnderline = false; underlineW = 0;
@@ -447,20 +475,10 @@ export class ResumesService {
         }
       }
 
-      // Modern items get a left border line
       if (templateId === 'modern') {
         doc.moveDown(0.2);
-        const itemBorderX = ml + 6;
-        const startY = doc.y;
-        let endY = startY;
-        const renderItems = () => {
-          const lineY = endY;
-          doc.lineWidth(2).strokeColor('#e2e8f0');
-          doc.moveTo(itemBorderX, startY).lineTo(itemBorderX, lineY).stroke();
-        };
-        // Store for later
-        (section as any)._modernStartY = startY;
-        (section as any)._modernItemBorderX = itemBorderX;
+        (section as any)._modernStartY = doc.y;
+        (section as any)._modernItemBorderX = ml + 6;
       }
 
       doc.moveDown(0.3);
@@ -482,25 +500,26 @@ export class ResumesService {
         section.items.forEach((item: any) => {
           const textX = templateId === 'modern' ? ml + 14 : ml;
           const itemWidth = pw - (templateId === 'modern' ? 14 : 0);
-          const itemY = doc.y;
+          const itemStartY = doc.y;
+
+          if (templateId === 'creative') {
+            doc.rect(textX - 4, itemStartY - 2, itemWidth + 8, 1000).fillColor('#fafafa').fill();
+          }
 
           const dateStr = [item.startDate, item.current ? 'Present' : item.endDate].filter(Boolean).join(' - ');
 
-          // Title + date on one line
           doc.fontSize(10).font('Helvetica-Bold').fillColor('#111')
             .text(item.title || item.degree || item.rank || '', textX, doc.y, { continued: true, width: itemWidth });
           if (dateStr) {
-            const tw = doc.widthOfString(item.title || item.degree || item.rank || '');
+            const titleW = doc.widthOfString(item.title || item.degree || item.rank || '');
             doc.fontSize(9).font('Helvetica').fillColor('#888')
-              .text(dateStr, textX + Math.min(tw + 10, itemWidth * 0.6), doc.y,
-                { width: itemWidth - Math.min(tw + 10, itemWidth * 0.6), align: 'right' });
+              .text(dateStr, textX + Math.min(titleW + 10, itemWidth - 80), doc.y, { width: itemWidth - Math.min(titleW + 10, itemWidth - 80), align: 'right' });
           }
           doc.moveDown(0.1);
 
           const subtitle = item.company || item.institution || item.branch || '';
           if (subtitle) {
-            doc.fontSize(9.5).font('Helvetica')
-              .fillColor(templateId === 'professional' ? '#1a365d' : templateId === 'modern' ? '#475569' : '#555')
+            doc.fontSize(9.5).font('Helvetica').fillColor(templateId === 'professional' ? '#1a365d' : '#555')
               .text(subtitle, textX, doc.y, { width: itemWidth });
             doc.moveDown(0.05);
           }
@@ -508,33 +527,37 @@ export class ResumesService {
           if (item.description) {
             doc.fontSize(9).font('Helvetica').fillColor('#444')
               .text(item.description, textX, doc.y, { width: itemWidth });
-            doc.moveDown(0.15);
+            doc.moveDown(0.2);
           }
 
-          const itemEndY = doc.y;
-
-          // Creative: light background + left accent per item
           if (templateId === 'creative') {
-            const pad = 2;
-            doc.rect(ml - 4, itemY - pad, pw + 8, itemEndY - itemY + pad).fillColor('#f8f9ff').fill();
-            doc.rect(ml - 4, itemY - pad, 3, itemEndY - itemY + pad).fillColor('#667eea').fill();
+            const fillH = doc.y - itemStartY + 4;
+            doc.rect(textX - 4, itemStartY - 2, itemWidth + 8, fillH).fillColor('#fafafa').fill();
             doc.fillColor('#111');
+            doc.fontSize(10).font('Helvetica-Bold').fillColor('#111')
+              .text(item.title || item.degree || item.rank || '', textX, itemStartY, { width: itemWidth });
+            if (dateStr) {
+              doc.fontSize(9).font('Helvetica').fillColor('#888')
+                .text(dateStr, textX, doc.y - 20, { width: itemWidth, align: 'right' });
+            }
+            if (subtitle) {
+              doc.fontSize(9.5).font('Helvetica').fillColor('#555').text(subtitle, textX, doc.y, { width: itemWidth });
+            }
+            if (item.description) {
+              doc.fontSize(9).font('Helvetica').fillColor('#444').text(item.description, textX, doc.y, { width: itemWidth });
+            }
+            doc.moveDown(0.15);
+            doc.rect(textX - 4, itemStartY, 3, doc.y - itemStartY).fillColor('#667eea').fill();
           }
 
-          // Modern: thin horizontal separator
           if (templateId === 'modern') {
-            doc.lineWidth(0.5).strokeColor('#f1f5f9');
-            doc.moveTo(textX, doc.y).lineTo(textX + itemWidth, doc.y).stroke();
+            doc.moveDown(0.05);
+            const y = doc.y;
+            doc.moveTo(textX, y).lineTo(textX + itemWidth, y).strokeColor('#f1f5f9').lineWidth(0.5).stroke();
             doc.moveDown(0.1);
-          }
-
-          // Minimal: extra breathing room
-          if (templateId === 'minimal') {
-            doc.moveDown(0.08);
           }
         });
 
-        // Modern: draw left border for items
         if (templateId === 'modern') {
           const modStartY = (section as any)._modernStartY;
           const modBorderX = (section as any)._modernItemBorderX;
@@ -543,10 +566,6 @@ export class ResumesService {
             doc.moveTo(modBorderX - 2, modStartY).lineTo(modBorderX - 2, doc.y).stroke();
           }
         }
-      }
-
-      if (templateId === 'creative') {
-        doc.moveDown(0.2);
       }
     });
 
