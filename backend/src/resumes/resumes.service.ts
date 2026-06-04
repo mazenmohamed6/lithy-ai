@@ -353,116 +353,200 @@ export class ResumesService {
     const buffers: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => buffers.push(chunk));
 
-    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const ml = doc.page.margins.left;
+    const pw = doc.page.width - ml - doc.page.margins.right;
 
-    // Template-specific header
-    if (templateId === 'creative') {
-      // Creative: filled background box (gradient simulated with solid color)
-      doc.rect(0, 0, doc.page.width, 90).fillColor('#667eea').fill();
-      doc.fillColor('white').fontSize(22).font('Helvetica-Bold')
-        .text(contact.fullName || resume.title, doc.page.margins.left, 25, { align: 'center' });
-      const contactLine = [contact.email, contact.phone, contact.location].filter(Boolean).join(' | ');
-      if (contactLine) {
-        doc.fontSize(10).font('Helvetica').fillColor('#ffffff')
-          .text(contactLine, doc.page.margins.left, 60, { align: 'center' });
-      }
-      doc.y = 105;
+    /*** HEADER ***/
+    if (templateId === 'classic' || templateId === 'default') {
+      doc.fontSize(24).font('Helvetica-Bold').fillColor('#1a1a1a')
+        .text(contact.fullName || resume.title, ml, doc.y, { align: 'center' });
+      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      if (cl) doc.fontSize(10).font('Helvetica').fillColor('#555').text(cl, { align: 'center' });
+      doc.moveDown(0.3);
+      const y1 = doc.y; doc.moveTo(ml, y1).lineTo(ml + pw, y1).strokeColor('#ddd').lineWidth(1).stroke();
+      doc.moveDown(0.5);
     } else if (templateId === 'modern') {
-      doc.fontSize(20).font('Helvetica-Bold').fillColor('#111')
-        .text(contact.fullName || resume.title, { align: 'left' });
-      const contactItems = [
-        contact.email ? `Email: ${contact.email}` : '',
-        contact.phone ? `Phone: ${contact.phone}` : '',
-        contact.location ? `Location: ${contact.location}` : '',
-      ].filter(Boolean);
-      if (contactItems.length) {
+      doc.fontSize(20).font('Helvetica-Bold').fillColor('#0f172a')
+        .text(contact.fullName || resume.title, ml, doc.y, { align: 'left' });
+      const contactGrid: string[] = [];
+      if (contact.email) contactGrid.push(contact.email);
+      if (contact.phone) contactGrid.push(contact.phone);
+      if (contact.location) contactGrid.push(contact.location);
+      if (contactGrid.length) {
         doc.fontSize(9).font('Helvetica').fillColor('#475569');
-        contactItems.forEach((item, i) => {
-          doc.text(item, doc.page.margins.left + (i % 2) * (pageWidth / 2), doc.y + (i > 1 ? 12 : 0));
+        const startY = doc.y + 4;
+        contactGrid.forEach((item, i) => {
+          doc.text(item, ml + (i % 2) * (pw / 2), startY + Math.floor(i / 2) * 12);
         });
-        doc.y += 14;
+        doc.y = startY + Math.ceil(contactGrid.length / 2) * 12 + 4;
       }
-    } else if (templateId === 'professional') {
-      doc.fontSize(26).font('Helvetica-Bold').fillColor('#1a365d')
-        .text(contact.fullName || resume.title, { align: 'center' });
-      const contactLine = [contact.email, contact.phone, contact.location].filter(Boolean).join(' | ');
-      if (contactLine) {
-        doc.fontSize(10).font('Helvetica').fillColor('#2d3748')
-          .text(contactLine, { align: 'center' });
-      }
+      doc.moveDown(0.3);
+      const y2 = doc.y; doc.moveTo(ml, y2).lineTo(ml + pw, y2).strokeColor('#e2e8f0').lineWidth(1).stroke();
+      doc.moveDown(0.5);
     } else if (templateId === 'minimal') {
       doc.fontSize(28).font('Helvetica').fillColor('#111')
-        .text(contact.fullName || resume.title, { align: 'center' });
-      const contactLine = [contact.email, contact.phone, contact.location].filter(Boolean).join(' | ');
-      if (contactLine) {
-        doc.fontSize(10).font('Helvetica').fillColor('#888')
-          .text(contactLine, { align: 'center' });
-      }
-    } else {
-      doc.fontSize(22).font('Helvetica-Bold').text(contact.fullName || resume.title, { align: 'center' });
-      const contactLine = [contact.email, contact.phone, contact.location].filter(Boolean).join(' | ');
-      if (contactLine) {
-        doc.fontSize(10).font('Helvetica').fillColor('#555')
-          .text(contactLine, { align: 'center' });
-      }
+        .text(contact.fullName || resume.title, ml, doc.y, { align: 'center' });
+      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      if (cl) doc.fontSize(9.5).font('Helvetica').fillColor('#888').text(cl, { align: 'center' });
+      doc.moveDown(0.3);
+      const y3 = doc.y; doc.moveTo(ml + 60, y3).lineTo(ml + pw - 60, y3).strokeColor('#ccc').lineWidth(0.5).stroke();
+      doc.moveDown(0.5);
+    } else if (templateId === 'professional') {
+      const nameStr = (contact.fullName || resume.title).toUpperCase();
+      doc.fontSize(26).font('Helvetica-Bold').fillColor('#1a365d')
+        .text(nameStr, ml, doc.y, { align: 'center' });
+      doc.moveDown(0.1);
+      const y4 = doc.y;
+      doc.moveTo(ml + 100, y4).lineTo(ml + pw - 100, y4).strokeColor('#1a365d').lineWidth(2).stroke();
+      doc.moveDown(0.15);
+      doc.moveTo(ml + 100, doc.y).lineTo(ml + pw - 100, doc.y).strokeColor('#1a365d').lineWidth(1).stroke();
+      doc.moveDown(0.3);
+      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      if (cl) doc.fontSize(9.5).font('Helvetica').fillColor('#2d3748').text(cl, { align: 'center' });
+      doc.moveDown(0.5);
+    } else if (templateId === 'creative') {
+      doc.rect(0, 0, doc.page.width, 95).fillColor('#667eea').fill();
+      doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold')
+        .text(contact.fullName || resume.title, ml, 28, { align: 'center' });
+      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      if (cl) doc.fontSize(10).font('Helvetica').fillColor('#ffffff').text(cl, ml, 60, { align: 'center' });
+      doc.y = 110;
     }
 
-    doc.moveDown(0.5);
-
-    const sectionColor = templateId === 'professional' ? '#1a365d' : templateId === 'creative' ? '#667eea' : templateId === 'modern' ? '#64748b' : '#111';
-    const underlineColor = templateId === 'professional' ? '#1a365d' : templateId === 'creative' ? '#667eea' : '#333';
-
+    /*** SECTIONS ***/
     sections.filter((s) => s.id !== 'contact' && s.enabled !== false).forEach((section) => {
-      doc.moveDown(0.3);
-      const fontSize = templateId === 'modern' ? 11 : templateId === 'minimal' ? 13 : 14;
-      const font = templateId === 'minimal' ? 'Helvetica' : 'Helvetica-Bold';
-      doc.fontSize(fontSize).font(font).fillColor(sectionColor)
-        .text(section.title, { continued: false });
+      const isClassic = templateId === 'classic' || templateId === 'default';
 
-      if (templateId !== 'modern' && templateId !== 'creative' && templateId !== 'minimal') {
-        doc.moveDown(0.15);
-        const y = doc.y;
-        doc.moveTo(doc.page.margins.left, y)
-          .lineTo(doc.page.margins.left + pageWidth, y)
-          .strokeColor(underlineColor)
-          .lineWidth(1)
-          .stroke();
+      // Section title
+      let secFontSize: number, secFont: string, secColor: string, hasUnderline: boolean, underlineW: number;
+      if (templateId === 'modern') {
+        secFontSize = 10; secFont = 'Helvetica-Bold'; secColor = '#64748b'; hasUnderline = false; underlineW = 0;
+      } else if (templateId === 'minimal') {
+        secFontSize = 13; secFont = 'Helvetica'; secColor = '#444'; hasUnderline = true; underlineW = 0.5;
+      } else if (templateId === 'professional') {
+        secFontSize = 14; secFont = 'Helvetica-Bold'; secColor = '#1a365d'; hasUnderline = true; underlineW = 1.5;
+      } else if (templateId === 'creative') {
+        secFontSize = 11; secFont = 'Helvetica-Bold'; secColor = '#667eea'; hasUnderline = false; underlineW = 0;
+      } else {
+        secFontSize = 14; secFont = 'Helvetica-Bold'; secColor = '#1a1a1a'; hasUnderline = true; underlineW = 1;
       }
+
       doc.moveDown(0.4);
+      doc.fontSize(secFontSize).font(secFont).fillColor(secColor)
+        .text(section.title, ml, doc.y, { continued: false });
+
+      if (hasUnderline) {
+        doc.moveDown(0.1);
+        const y = doc.y;
+        if (templateId === 'minimal') {
+          doc.moveTo(ml, y).lineTo(ml + pw, y).strokeColor('#ddd').lineWidth(underlineW).stroke();
+        } else if (templateId === 'professional') {
+          doc.moveTo(ml, y).lineTo(ml + pw, y).strokeColor('#1a365d').lineWidth(underlineW).stroke();
+        } else {
+          doc.moveTo(ml, y).lineTo(ml + pw, y).strokeColor('#333').lineWidth(underlineW).stroke();
+        }
+      }
+
+      // Modern items get a left border line
+      if (templateId === 'modern') {
+        doc.moveDown(0.2);
+        const itemBorderX = ml + 6;
+        const startY = doc.y;
+        let endY = startY;
+        const renderItems = () => {
+          const lineY = endY;
+          doc.lineWidth(2).strokeColor('#e2e8f0');
+          doc.moveTo(itemBorderX, startY).lineTo(itemBorderX, lineY).stroke();
+        };
+        // Store for later
+        (section as any)._modernStartY = startY;
+        (section as any)._modernItemBorderX = itemBorderX;
+      }
+
+      doc.moveDown(0.3);
 
       if (section.id === 'summary') {
         if (section.content) {
+          const textX = templateId === 'modern' ? ml + 14 : ml;
           doc.fontSize(10).font('Helvetica').fillColor('#333')
-            .text(section.content, { align: 'left' });
+            .text(section.content, textX, doc.y, { align: 'left', width: pw - (templateId === 'modern' ? 14 : 0) });
         }
       } else if (section.id === 'skills') {
         if (section.items?.length) {
+          const textX = templateId === 'modern' ? ml + 14 : ml;
           const skills = section.items.join('  •  ');
           doc.fontSize(10).font('Helvetica').fillColor('#333')
-            .text(skills, { align: 'left' });
+            .text(skills, textX, doc.y, { align: 'left', width: pw - (templateId === 'modern' ? 14 : 0) });
         }
       } else if (section.items?.length) {
         section.items.forEach((item: any) => {
+          const textX = templateId === 'modern' ? ml + 14 : ml;
+          const itemWidth = pw - (templateId === 'modern' ? 14 : 0);
+          const itemY = doc.y;
+
           const dateStr = [item.startDate, item.current ? 'Present' : item.endDate].filter(Boolean).join(' - ');
-          doc.fontSize(10).font('Helvetica').fillColor('#333')
-            .text(item.title || item.degree || item.rank || '', { continued: true });
+
+          // Title + date on one line
+          doc.fontSize(10).font('Helvetica-Bold').fillColor('#111')
+            .text(item.title || item.degree || item.rank || '', textX, doc.y, { continued: true, width: itemWidth });
           if (dateStr) {
-            doc.fontSize(10).font('Helvetica').fillColor('#666')
-              .text(`    ${dateStr}`, { align: 'right' });
-          } else {
-            doc.moveDown(0.2);
+            const tw = doc.widthOfString(item.title || item.degree || item.rank || '');
+            doc.fontSize(9).font('Helvetica').fillColor('#888')
+              .text(dateStr, textX + Math.min(tw + 10, itemWidth * 0.6), doc.y,
+                { width: itemWidth - Math.min(tw + 10, itemWidth * 0.6), align: 'right' });
           }
+          doc.moveDown(0.1);
 
           const subtitle = item.company || item.institution || item.branch || '';
           if (subtitle) {
-            doc.fontSize(10).font('Helvetica').fillColor('#555').text(subtitle);
+            doc.fontSize(9.5).font('Helvetica')
+              .fillColor(templateId === 'professional' ? '#1a365d' : templateId === 'modern' ? '#475569' : '#555')
+              .text(subtitle, textX, doc.y, { width: itemWidth });
+            doc.moveDown(0.05);
           }
 
           if (item.description) {
-            doc.fontSize(9).font('Helvetica').fillColor('#444').text(item.description);
-            doc.moveDown(0.2);
+            doc.fontSize(9).font('Helvetica').fillColor('#444')
+              .text(item.description, textX, doc.y, { width: itemWidth });
+            doc.moveDown(0.15);
+          }
+
+          const itemEndY = doc.y;
+
+          // Creative: light background + left accent per item
+          if (templateId === 'creative') {
+            const pad = 2;
+            doc.rect(ml - 4, itemY - pad, pw + 8, itemEndY - itemY + pad).fillColor('#f8f9ff').fill();
+            doc.rect(ml - 4, itemY - pad, 3, itemEndY - itemY + pad).fillColor('#667eea').fill();
+            doc.fillColor('#111');
+          }
+
+          // Modern: thin horizontal separator
+          if (templateId === 'modern') {
+            doc.lineWidth(0.5).strokeColor('#f1f5f9');
+            doc.moveTo(textX, doc.y).lineTo(textX + itemWidth, doc.y).stroke();
+            doc.moveDown(0.1);
+          }
+
+          // Minimal: extra breathing room
+          if (templateId === 'minimal') {
+            doc.moveDown(0.08);
           }
         });
+
+        // Modern: draw left border for items
+        if (templateId === 'modern') {
+          const modStartY = (section as any)._modernStartY;
+          const modBorderX = (section as any)._modernItemBorderX;
+          if (modStartY) {
+            doc.lineWidth(2).strokeColor('#e2e8f0');
+            doc.moveTo(modBorderX - 2, modStartY).lineTo(modBorderX - 2, doc.y).stroke();
+          }
+        }
+      }
+
+      if (templateId === 'creative') {
+        doc.moveDown(0.2);
       }
     });
 
