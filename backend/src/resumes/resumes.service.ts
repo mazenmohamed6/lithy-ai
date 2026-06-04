@@ -7,8 +7,8 @@ import * as path from 'path';
 import mammoth from 'mammoth';
 const PDFDocument = require('pdfkit');
 const pdfjsLib = require('pdfjs-dist');
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
+let chromium: any;
+let puppeteer: any;
 
 @Injectable()
 export class ResumesService {
@@ -413,6 +413,14 @@ export class ResumesService {
   }
 
   private async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
+    if (!puppeteer) {
+      const [puppeteerModule, chromiumModule] = await Promise.all([
+        import('puppeteer-core') as any,
+        import('@sparticuz/chromium') as any,
+      ]);
+      puppeteer = puppeteerModule.default || puppeteerModule;
+      chromium = chromiumModule.default || chromiumModule;
+    }
     const html = await this.exportHtml(id, userId);
     const browser = await puppeteer.launch({
       args: chromium.args,
