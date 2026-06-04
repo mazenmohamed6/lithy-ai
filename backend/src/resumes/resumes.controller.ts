@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -54,10 +54,11 @@ export class ResumesController {
 
   @Post('upload')
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Upload resume file from device' })
   @ApiConsumes('multipart/form-data')
   async upload(@CurrentUser() user: any, @UploadedFile() file: any) {
+    if (!file) throw new BadRequestException('No file uploaded or file too large (max 10MB)');
     return this.resumesService.createFromUpload(user.id, user.email, file);
   }
 
@@ -97,10 +98,11 @@ export class ResumesController {
 
   @Post('extract-text')
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Extract text from file without creating resume' })
   @ApiConsumes('multipart/form-data')
   async extractText(@UploadedFile() file: any) {
+    if (!file) throw new BadRequestException('No file uploaded or file too large (max 10MB)');
     const text = await this.resumesService.extractFileText(file);
     return { text };
   }

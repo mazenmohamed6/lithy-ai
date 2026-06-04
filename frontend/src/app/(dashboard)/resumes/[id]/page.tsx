@@ -124,11 +124,7 @@ export default function ResumeEditorPage() {
 
   const handleDownload = useCallback(async () => {
     if (!isNew && params.id) {
-      try {
-        await api.download(`/resumes/${params.id}/download-pdf`);
-      } catch (err: any) {
-        toast.error(err.message || "Failed to download PDF");
-      }
+      window.open(`/resumes/${params.id}/print`, "_blank");
     }
   }, [isNew, params.id]);
 

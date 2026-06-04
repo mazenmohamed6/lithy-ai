@@ -215,9 +215,9 @@ export class ResumesService {
       }
     } catch (err) {
       this.logger.warn(`Text extraction failed for ${file.originalname}: ${err}`);
+      throw new BadRequestException(`Unable to read file: ${err.message || err}`);
     }
-
-    return '';
+    throw new BadRequestException('Unexpected error during text extraction');
   }
 
   async extractFileText(file: any): Promise<string> {
