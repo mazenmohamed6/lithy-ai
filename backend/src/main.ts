@@ -7,16 +7,18 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-const server = express();
+const app = express();
+let initialized = false;
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), { rawBody: true });
+async function init() {
+  if (initialized) return;
+  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app), { rawBody: true });
 
-  app.use(compression());
-  app.use(cookieParser());
-  app.enableCors({ origin: '*', credentials: true });
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalPipes(
+  nestApp.use(compression());
+  nestApp.use(cookieParser());
+  nestApp.enableCors({ origin: '*', credentials: true });
+  nestApp.useGlobalFilters(new AllExceptionsFilter());
+  nestApp.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -25,25 +27,25 @@ async function bootstrap() {
     }),
   );
 
-  await app.init();
+  await nestApp.init();
+  initialized = true;
 }
 
-const ready = bootstrap().catch((err) => {
-  new Logger('Bootstrap').error('App initialization failed', err);
+const ready = init().catch((err) => {
+  console.error('=== SERVERLESS INIT FAILED ===', err?.stack || err);
 });
 
-if (!process.env.VERCEL) {
-  (async () => {
-    await ready;
+if (process.argv[1] && !process.env.VERCEL) {
+  ready.then(() => {
     const port = process.env.PORT || 4000;
-    server.listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
-  })();
+    app.listen(port, () => new Logger('Serverless').log(`Listening on port ${port}`));
+  });
 }
 
 export default async function handler(req: any, res: any) {
   try {
     await ready;
-    server(req, res);
+    app(req, res);
   } catch {
     res.statusCode = 503;
     res.end('Service unavailable');
