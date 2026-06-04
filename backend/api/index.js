@@ -1,5 +1,4 @@
 let cachedApp;
-let cachedListener;
 
 async function loadApp() {
   const { bootstrap } = require('../dist/main');
@@ -9,7 +8,18 @@ async function loadApp() {
 
 module.exports = async function handler(req, res) {
   if (!cachedApp) {
-    cachedApp = await loadApp();
+    try {
+      cachedApp = await loadApp();
+    } catch (err) {
+      console.error('BOOTSTRAP ERROR:', err);
+      res.status(500).json({
+        ok: false,
+        error: 'Bootstrap failed',
+        message: err.message,
+        stack: err.stack?.split('\n').slice(0, 5).join('\n'),
+      });
+      return;
+    }
   }
   cachedApp(req, res);
 };
