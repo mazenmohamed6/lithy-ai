@@ -1,4 +1,4 @@
-const { createApp } = require('../dist/app-factory');
+const { bootstrap } = require('../dist/main');
 
 let server;
 
