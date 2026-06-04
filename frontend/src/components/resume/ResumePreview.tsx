@@ -96,7 +96,7 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
           {section.items.map((item: any) => (
             <div key={item.id} className="res-item">
               <div className="res-item-header">
-                <span className="res-item-title">{item.title || item.degree || item.rank || item.name || ""}</span>
+                <span className="res-item-title">{item.title || [item.degree, item.field].filter(Boolean).join(', ') || item.rank || item.name || ""}</span>
                 <span className="res-item-date">{item.startDate || ""}{item.startDate ? " – " : ""}{item.current ? "Present" : item.endDate || ""}</span>
               </div>
               <div className="res-item-sub">{item.company || item.institution || item.branch || ""}</div>
@@ -145,8 +145,8 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
         .res-classic .res-item-title { font-size: 14px; font-weight: 700; color: #1a1a1a; }
         .res-classic .res-item-date { font-size: 11px; color: #888; font-style: italic; }
         .res-classic .res-item-sub { font-size: 12px; font-weight: 600; color: #c9952c; margin-bottom: 2px; }
-        .res-classic .res-item-desc { font-size: 12px; color: #444; margin: 2px 0 0; line-height: 1.5; }
-        .res-classic .res-text-body { font-size: 12px; color: #444; line-height: 1.6; }
+        .res-classic .res-item-desc { font-size: 12px; color: #444; margin: 2px 0 0; line-height: 1.5; white-space: pre-line; }
+        .res-classic .res-text-body { font-size: 12px; color: #444; line-height: 1.6; white-space: pre-line; }
         .res-classic .res-skills { display: flex; flex-wrap: wrap; gap: 6px; }
         .res-classic .res-skill-tag { font-size: 11px; color: #555; background: #f5f2eb; padding: 3px 10px; border-radius: 2px; }
 
@@ -167,8 +167,8 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
         .res-modern .res-item-title { font-size: 14px; font-weight: 600; color: #0f172a; }
         .res-modern .res-item-date { font-size: 11px; color: #94a3b8; }
         .res-modern .res-item-sub { font-size: 12px; color: #3b82f6; font-weight: 500; margin-bottom: 2px; }
-        .res-modern .res-item-desc { font-size: 12px; color: #475569; margin: 2px 0 0; line-height: 1.5; }
-        .res-modern .res-text-body { font-size: 12px; color: #475569; line-height: 1.6; }
+        .res-modern .res-item-desc { font-size: 12px; color: #475569; margin: 2px 0 0; line-height: 1.5; white-space: pre-line; }
+        .res-modern .res-text-body { font-size: 12px; color: #475569; line-height: 1.6; white-space: pre-line; }
         .res-modern .res-skills { display: flex; flex-wrap: wrap; gap: 6px; }
         .res-modern .res-skill-tag { font-size: 11px; color: #1e293b; background: #eef2ff; padding: 4px 12px; border-radius: 6px; font-weight: 500; }
 
@@ -187,8 +187,8 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
         .res-minimal .res-item-title { font-size: 13px; font-weight: 500; color: #111; }
         .res-minimal .res-item-date { font-size: 10px; color: #aaa; }
         .res-minimal .res-item-sub { font-size: 11px; color: #666; margin-bottom: 1px; }
-        .res-minimal .res-item-desc { font-size: 11px; color: #555; margin: 1px 0 0; line-height: 1.5; }
-        .res-minimal .res-text-body { font-size: 12px; color: #555; line-height: 1.7; }
+        .res-minimal .res-item-desc { font-size: 11px; color: #555; margin: 1px 0 0; line-height: 1.5; white-space: pre-line; }
+        .res-minimal .res-text-body { font-size: 12px; color: #555; line-height: 1.7; white-space: pre-line; }
         .res-minimal .res-skills { display: flex; flex-wrap: wrap; gap: 4px; }
         .res-minimal .res-skill-tag { font-size: 10px; color: #666; padding: 2px 8px; border: 1px solid #eee; letter-spacing: 0.5px; }
 
@@ -219,8 +219,8 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
         .res-professional .res-item-title { font-size: 14px; font-weight: 700; color: #1e3a5f; }
         .res-professional .res-item-date { font-size: 11px; color: #7f8c8d; }
         .res-professional .res-item-sub { font-size: 12px; font-weight: 600; color: #c9952c; margin-bottom: 2px; }
-        .res-professional .res-item-desc { font-size: 12px; color: #444; margin: 2px 0 0; line-height: 1.5; }
-        .res-professional .res-text-body { font-size: 12px; color: #444; line-height: 1.6; }
+        .res-professional .res-item-desc { font-size: 12px; color: #444; margin: 2px 0 0; line-height: 1.5; white-space: pre-line; }
+        .res-professional .res-text-body { font-size: 12px; color: #444; line-height: 1.6; white-space: pre-line; }
         .res-professional .res-skills { display: flex; flex-wrap: wrap; gap: 6px; }
         .res-professional .res-skill-tag { font-size: 11px; color: #2c3e50; background: #edf2f7; padding: 3px 10px; }
 
@@ -248,8 +248,8 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
         .res-creative .res-item-title { font-size: 14px; font-weight: 600; color: #18181b; }
         .res-creative .res-item-date { font-size: 11px; color: #71717a; }
         .res-creative .res-item-sub { font-size: 12px; color: #f43f5e; font-weight: 500; margin-bottom: 2px; }
-        .res-creative .res-item-desc { font-size: 12px; color: #52525b; margin: 2px 0 0; line-height: 1.5; }
-        .res-creative .res-text-body { font-size: 12px; color: #52525b; line-height: 1.6; }
+        .res-creative .res-item-desc { font-size: 12px; color: #52525b; margin: 2px 0 0; line-height: 1.5; white-space: pre-line; }
+        .res-creative .res-text-body { font-size: 12px; color: #52525b; line-height: 1.6; white-space: pre-line; }
         .res-creative .res-skills { display: flex; flex-wrap: wrap; gap: 6px; }
         .res-creative .res-skill-tag { font-size: 11px; color: #18181b; background: #fce7f3; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
       `}</style>

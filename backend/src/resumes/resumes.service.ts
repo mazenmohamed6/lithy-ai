@@ -199,8 +199,7 @@ export class ResumesService {
         return file.buffer.toString('utf-8').trim().substring(0, 25000);
       } else if (ext === '.pdf') {
         const data = new Uint8Array(file.buffer);
-        const fontUrl = path.join(__dirname, '..', '..', '..', 'node_modules', 'pdfjs-dist', 'standard_fonts') + '/';
-        const doc = await pdfjsLib.getDocument({ data, standardFontDataUrl: fontUrl }).promise;
+        const doc = await pdfjsLib.getDocument({ data }).promise;
         const pages: string[] = [];
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
@@ -273,7 +272,7 @@ export class ResumesService {
         if (s.items?.length) {
           return s.items.map((i: any) => `
             <div class="res-item">
-              <div class="res-item-header"><span class="res-item-title">${i.title || i.degree || i.rank || i.name || ''}</span> <span class="res-item-date">${i.startDate || ''}${i.startDate ? ' – ' : ''}${i.current ? 'Present' : i.endDate || ''}</span></div>
+              <div class="res-item-header"><span class="res-item-title">${i.title || [i.degree, i.field].filter(Boolean).join(', ') || i.rank || i.name || ''}</span> <span class="res-item-date">${i.startDate || ''}${i.startDate ? ' – ' : ''}${i.current ? 'Present' : i.endDate || ''}</span></div>
               <div class="res-item-sub">${i.company || i.institution || i.branch || ''}</div>
               ${i.description ? `<p class="res-item-desc">${i.description}</p>` : ''}
               ${i.gpa ? `<p class="res-item-desc">GPA: ${i.gpa}</p>` : ''}
@@ -313,8 +312,8 @@ export class ResumesService {
 .res-item-title{font-size:14px;font-weight:600;color:#0f172a}
 .res-item-date{font-size:11px;color:#94a3b8}
 .res-item-sub{font-size:12px;color:#3b82f6;font-weight:500;margin-bottom:2px}
-.res-item-desc{font-size:12px;color:#475569;margin:2px 0 0;line-height:1.5}
-.res-text-body{font-size:12px;color:#475569;line-height:1.6}
+.res-item-desc{font-size:12px;color:#475569;margin:2px 0 0;line-height:1.5;white-space:pre-line}
+.res-text-body{font-size:12px;color:#475569;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#1e293b;background:#eef2ff;padding:4px 12px;border-radius:6px;font-weight:500}`;
       headerHtml = `<div class="res-contact res-root" style="margin-top:0"><h1 class="res-name">${contact.fullName || resume.title}</h1><div class="res-contact-grid">${items.map((i) => `<span class="res-contact-chip">${i}</span>`).join('')}</div></div>`;
@@ -330,8 +329,8 @@ export class ResumesService {
 .res-item-title{font-size:13px;font-weight:500;color:#111}
 .res-item-date{font-size:10px;color:#aaa}
 .res-item-sub{font-size:11px;color:#666;margin-bottom:1px}
-.res-item-desc{font-size:11px;color:#555;margin:1px 0 0;line-height:1.5}
-.res-text-body{font-size:12px;color:#555;line-height:1.7}
+.res-item-desc{font-size:11px;color:#555;margin:1px 0 0;line-height:1.5;white-space:pre-line}
+.res-text-body{font-size:12px;color:#555;line-height:1.7;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:4px}
 .res-skill-tag{font-size:10px;color:#666;padding:2px 8px;border:1px solid #eee;letter-spacing:.5px}`;
       headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-minimal"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  /  ')}</p></div></div>`;
@@ -351,8 +350,8 @@ export class ResumesService {
 .res-item-title{font-size:14px;font-weight:700;color:#1e3a5f}
 .res-item-date{font-size:11px;color:#7f8c8d}
 .res-item-sub{font-size:12px;font-weight:600;color:#c9952c;margin-bottom:2px}
-.res-item-desc{font-size:12px;color:#444;margin:2px 0 0;line-height:1.5}
-.res-text-body{font-size:12px;color:#444;line-height:1.6}
+.res-item-desc{font-size:12px;color:#444;margin:2px 0 0;line-height:1.5;white-space:pre-line}
+.res-text-body{font-size:12px;color:#444;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#2c3e50;background:#edf2f7;padding:3px 10px}`;
       headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-professional"><div class="res-prof-rule-top"></div><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-prof-rule-bottom"></div></div></div>`;
@@ -369,8 +368,8 @@ export class ResumesService {
 .res-item-title{font-size:14px;font-weight:600;color:#18181b}
 .res-item-date{font-size:11px;color:#71717a}
 .res-item-sub{font-size:12px;color:#f43f5e;font-weight:500;margin-bottom:2px}
-.res-item-desc{font-size:12px;color:#52525b;margin:2px 0 0;line-height:1.5}
-.res-text-body{font-size:12px;color:#52525b;line-height:1.6}
+.res-item-desc{font-size:12px;color:#52525b;margin:2px 0 0;line-height:1.5;white-space:pre-line}
+.res-text-body{font-size:12px;color:#52525b;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#18181b;background:#fce7f3;padding:4px 12px;border-radius:20px;font-weight:500}`;
       headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-creative"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  ·  ')}</p></div></div>`;
@@ -388,8 +387,8 @@ export class ResumesService {
 .res-item-title{font-size:14px;font-weight:700;color:#1a1a1a}
 .res-item-date{font-size:11px;color:#888;font-style:italic}
 .res-item-sub{font-size:12px;font-weight:600;color:#c9952c;margin-bottom:2px}
-.res-item-desc{font-size:12px;color:#444;margin:2px 0 0;line-height:1.5}
-.res-text-body{font-size:12px;color:#444;line-height:1.6}
+.res-item-desc{font-size:12px;color:#444;margin:2px 0 0;line-height:1.5;white-space:pre-line}
+.res-text-body{font-size:12px;color:#444;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#555;background:#f5f2eb;padding:3px 10px;border-radius:2px}`;
       headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-classic"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-classic-rule"></div></div></div>`;
@@ -575,10 +574,11 @@ export class ResumesService {
 
           const dateStr = [item.startDate, item.current ? 'Present' : item.endDate].filter(Boolean).join(' - ');
 
+          const itemTitle = item.title || [item.degree, item.field].filter(Boolean).join(', ') || item.rank || '';
           doc.fontSize(10).font('Helvetica-Bold').fillColor('#111')
-            .text(item.title || item.degree || item.rank || '', textX, doc.y, { continued: true, width: itemWidth });
+            .text(itemTitle, textX, doc.y, { continued: true, width: itemWidth });
           if (dateStr) {
-            const titleW = doc.widthOfString(item.title || item.degree || item.rank || '');
+            const titleW = doc.widthOfString(itemTitle);
             doc.fontSize(9).font('Helvetica').fillColor('#888')
               .text(dateStr, textX + Math.min(titleW + 10, itemWidth - 80), doc.y, { width: itemWidth - Math.min(titleW + 10, itemWidth - 80), align: 'right' });
           }
@@ -602,7 +602,7 @@ export class ResumesService {
             doc.rect(textX - 4, itemStartY - 2, itemWidth + 8, fillH).fillColor('#fafafa').fill();
             doc.fillColor('#111');
             doc.fontSize(10).font('Helvetica-Bold').fillColor('#111')
-              .text(item.title || item.degree || item.rank || '', textX, itemStartY, { width: itemWidth });
+              .text(itemTitle, textX, itemStartY, { width: itemWidth });
             if (dateStr) {
               doc.fontSize(9).font('Helvetica').fillColor('#888')
                 .text(dateStr, textX, doc.y - 20, { width: itemWidth, align: 'right' });
