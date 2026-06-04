@@ -1,53 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import compression from 'compression';
-import cookieParser from 'cookie-parser';
-import express from 'express';
-import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { Logger } from '@nestjs/common';
+import { createApp } from './app-factory';
 
-const app = express();
-let initialized = false;
-
-async function init() {
-  if (initialized) return;
-  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app), { rawBody: true });
-
-  nestApp.use(compression());
-  nestApp.use(cookieParser());
-  nestApp.enableCors({ origin: '*', credentials: true });
-  nestApp.useGlobalFilters(new AllExceptionsFilter());
-  nestApp.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
-
-  await nestApp.init();
-  initialized = true;
+async function main() {
+  const app = await createApp();
+  const port = process.env.PORT || 4000;
+  app.listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
 }
 
-const ready = init().catch((err) => {
-  console.error('=== SERVERLESS INIT FAILED ===', err?.stack || err);
-});
-
-if (process.argv[1] && !process.env.VERCEL) {
-  ready.then(() => {
-    const port = process.env.PORT || 4000;
-    app.listen(port, () => new Logger('Serverless').log(`Listening on port ${port}`));
-  });
-}
-
-export default async function handler(req: any, res: any) {
-  try {
-    await ready;
-    app(req, res);
-  } catch {
-    res.statusCode = 503;
-    res.end('Service unavailable');
-  }
-}
+main();
