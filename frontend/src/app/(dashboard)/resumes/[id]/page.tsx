@@ -120,13 +120,14 @@ export default function ResumeEditorPage() {
       }
     }, 3000);
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
-  }, [title, sections, isNew, params.id]);
+  }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownload = useCallback(async () => {
     if (!isNew && params.id) {
+      await saveResume();
       window.open(`/resumes/${params.id}/print`, "_blank");
     }
-  }, [isNew, params.id]);
+  }, [isNew, params.id, saveResume]);
 
   const getCompletionScore = () => {
     let filled = 0; let total = 0;

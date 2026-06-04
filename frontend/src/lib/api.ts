@@ -143,12 +143,22 @@ class ApiClient {
     const headers: Record<string, string> = { "X-Request-Id": generateRequestId() };
     if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
 
-    const response = await fetch(`${this.baseUrl}${path}`, { method: "POST", headers, body: formData, signal: AbortSignal.timeout(60000) });
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(getFriendlyErrorMessage(response.status, body));
+    try {
+      const response = await fetch(`${this.baseUrl}${path}`, { method: "POST", headers, body: formData, signal: AbortSignal.timeout(60000) });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(getFriendlyErrorMessage(response.status, body));
+      }
+      return response.json();
+    } catch (err: any) {
+      if (err.name === "TimeoutError" || err.name === "AbortError") {
+        throw new Error("Upload timed out. File may be too large.");
+      }
+      if (err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
+        throw new Error("Unable to reach server. Check your connection and ensure the API URL is configured.");
+      }
+      throw err;
     }
-    return response.json();
   }
 }
 

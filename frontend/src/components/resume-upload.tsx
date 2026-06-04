@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 interface ResumeUploadProps {
   onResumeText: (text: string) => void;
@@ -34,9 +35,11 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
         setText(extracted);
         onResumeText(extracted);
       }
-    } catch {
-      setText(`[Could not extract text from ${file.name}. Please paste content manually.]`);
-      onResumeText(`[Could not extract text from ${file.name}. Please paste content manually.]`);
+    } catch (err: any) {
+      const msg = err.message || "Unknown error";
+      toast.error(msg);
+      setText(`[Could not extract text from ${file.name}. ${msg}. Please paste content manually.]`);
+      onResumeText(`[Could not extract text from ${file.name}. ${msg}. Please paste content manually.]`);
     } finally {
       setIsParsing(false);
     }
