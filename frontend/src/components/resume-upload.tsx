@@ -17,7 +17,14 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (!file.name.match(/\.(pdf|docx|doc|txt)$/i)) return;
+    if (!file.name.match(/\.(pdf|docx|doc|txt)$/i)) {
+      toast.error("Only PDF, DOCX, DOC, and TXT files are supported");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File is too large. Maximum size is 10MB.");
+      return;
+    }
 
     setFileName(file.name);
     setIsParsing(true);
@@ -36,10 +43,11 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
         onResumeText(extracted);
       }
     } catch (err: any) {
-      const msg = err.message || "Unknown error";
-      toast.error(msg);
-      setText(`[Could not extract text from ${file.name}. ${msg}. Please paste content manually.]`);
-      onResumeText(`[Could not extract text from ${file.name}. ${msg}. Please paste content manually.]`);
+      const details = err?.status ? ` (HTTP ${err.status})` : "";
+      const msg = err.message || "Could not read file";
+      toast.error(`${msg}${details}`);
+      setText(`[Could not extract text from ${file.name}. ${msg}${details}. Please paste content manually.]`);
+      onResumeText(`[Could not extract text from ${file.name}. ${msg}${details}. Please paste content manually.]`);
     } finally {
       setIsParsing(false);
     }

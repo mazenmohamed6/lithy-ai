@@ -122,10 +122,10 @@ export default function ResumeEditorPage() {
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(() => {
     if (!isNew && params.id) {
-      await saveResume();
-      window.open(`/resumes/${params.id}/print`, "_blank");
+      saveResume();
+      window.location.href = `/resumes/${params.id}/print`;
     }
   }, [isNew, params.id, saveResume]);
 
