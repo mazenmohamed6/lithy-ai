@@ -1,10 +1,15 @@
-const { bootstrap } = require('../dist/main');
+let cachedApp;
+let cachedListener;
 
-let server;
+async function loadApp() {
+  const { bootstrap } = require('../dist/main');
+  const app = await bootstrap();
+  return app;
+}
 
 module.exports = async function handler(req, res) {
-  if (!server) {
-    server = await createApp();
+  if (!cachedApp) {
+    cachedApp = await loadApp();
   }
-  server(req, res);
+  cachedApp(req, res);
 };
