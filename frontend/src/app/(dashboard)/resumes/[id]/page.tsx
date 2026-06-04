@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
-import { RESUME_SECTIONS, RESUME_TEMPLATES } from "@/lib/constants";
+import { RESUME_SECTIONS, RESUME_TEMPLATES, PLANS } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Printer } from "lucide-react";
+import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Printer, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ResumeEditorPage() {
@@ -28,6 +28,8 @@ export default function ResumeEditorPage() {
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const isNew = params.id === "new";
+  const [userPlan, setUserPlan] = useState<string>("FREE");
+  const canAccessPremium = userPlan === "PRO" || userPlan === "PREMIUM" || userPlan === "PRO_ANNUAL" || userPlan === "PREMIUM_ANNUAL";
 
   const saveResume = useCallback(async () => {
     setSaveStatus("saving");
@@ -48,6 +50,7 @@ export default function ResumeEditorPage() {
 
   useEffect(() => {
     if (!user) return;
+    api.get("/users/usage").then((u: any) => setUserPlan(u.plan || "FREE")).catch(() => {});
     if (isNew) {
       setSections(getDefaultSections());
       setTitle(locale === "ar" ? "سيرة ذاتية بدون عنوان" : "Untitled Resume");
@@ -158,6 +161,7 @@ export default function ResumeEditorPage() {
     experience: locale === "ar" ? "استخدم أرقاماً وإحصائيات لوصف إنجازاتك. مثلاً: 'زدت المبيعات بنسبة ٣٠٪'" : "Use numbers to describe achievements. E.g. 'Increased sales by 30%'",
     education: locale === "ar" ? "اذكر المعدل التراكمي إذا كان أعلى من ٣.٠ والمقررات الدراسية ذات الصلة" : "Include GPA if above 3.0 and relevant coursework",
     skills: locale === "ar" ? "أضف ٨-١٢ مهارة مقسمة إلى مهارات تقنية وشخصية" : "Add 8-12 skills split into technical and soft skills",
+    military: locale === "ar" ? "اذكر فرع الخدمة ورتبتك ومدة الخدمة وأهم الإنجازات" : "Include branch, rank, service period, and key achievements",
   };
 
   if (isLoading) {
@@ -183,7 +187,7 @@ export default function ResumeEditorPage() {
           </Button>
         </div>
         <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
-          <ResumePreview sections={sections} title={title} />
+          <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
         </Card>
       </div>
     );
@@ -230,11 +234,29 @@ export default function ResumeEditorPage() {
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground uppercase">Template</p>
           <div className="grid grid-cols-2 gap-2">
-            {RESUME_TEMPLATES.map((t) => (
-              <Button key={t.id} variant={resume?.templateId === t.id || (isNew && t.id === "default") ? "default" : "outline"} size="sm" className="text-xs" onClick={() => setResume((prev: any) => ({ ...prev, templateId: t.id }))}>
-                {t.name} {t.premium && "★"}
-              </Button>
-            ))}
+            {RESUME_TEMPLATES.map((t) => {
+              const locked = t.premium && !canAccessPremium;
+              return (
+                <Button
+                  key={t.id}
+                  variant={resume?.templateId === t.id || (isNew && t.id === "default") ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  disabled={locked}
+                  onClick={() => {
+                    if (locked) {
+                      toast.error("Premium templates require a Pro or Premium plan. Upgrade to access this template.");
+                      return;
+                    }
+                    setResume((prev: any) => ({ ...prev, templateId: t.id }));
+                  }}
+                >
+                  {locked && <Lock className="h-3 w-3 mr-1" />}
+                  {!locked && t.premium && <Crown className="h-3 w-3 mr-1 text-amber-500" />}
+                  {t.name}
+                </Button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -348,6 +370,8 @@ function SectionEditor({ sectionId, data, onUpdate }: { sectionId: string; data?
       return <EducationEditor data={data} onUpdate={(d: any) => onUpdate(sectionId, d)} />;
     case "skills":
       return <SkillsEditor data={data} onUpdate={(d: any) => onUpdate(sectionId, d)} />;
+    case "military":
+      return <MilitaryEditor data={data} onUpdate={(d: any) => onUpdate(sectionId, d)} />;
     default:
       return <GenericEditor data={data} onUpdate={(d: any) => onUpdate(sectionId, d)} />;
   }
@@ -467,6 +491,37 @@ function SkillsEditor({ data, onUpdate }: { data: any; onUpdate: (data: any) => 
   );
 }
 
+function MilitaryEditor({ data, onUpdate }: { data: any; onUpdate: (data: any) => void }) {
+  const items = data.items || [];
+  const addItem = () => onUpdate({ ...data, items: [...items, { id: Date.now().toString(), branch: "", rank: "", startDate: "", endDate: "", description: "" }] });
+  const updateItem = (id: string, field: string, value: any) => onUpdate({ ...data, items: items.map((i: any) => i.id === id ? { ...i, [field]: value } : i) });
+  const removeItem = (id: string) => onUpdate({ ...data, items: items.filter((i: any) => i.id !== id) });
+
+  return (
+    <div className="space-y-4">
+      {items.map((item: any) => (
+        <Card key={item.id}>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex justify-between">
+              <div className="grid grid-cols-2 gap-3 flex-1">
+                <div><label className="text-xs">Branch</label><Input value={item.branch} onChange={(e) => updateItem(item.id, "branch", e.target.value)} /></div>
+                <div><label className="text-xs">Rank</label><Input value={item.rank} onChange={(e) => updateItem(item.id, "rank", e.target.value)} /></div>
+                <div><label className="text-xs">Start Date</label><Input type="month" value={item.startDate} onChange={(e) => updateItem(item.id, "startDate", e.target.value)} /></div>
+                <div className="flex gap-2">
+                  <div className="flex-1"><label className="text-xs">End Date</label><Input type="month" value={item.endDate} onChange={(e) => updateItem(item.id, "endDate", e.target.value)} /></div>
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}><Trash2 className="h-3 w-3" /></Button>
+                </div>
+              </div>
+            </div>
+            <div><label className="text-xs">Description</label><textarea className="w-full min-h-[80px] mt-1 rounded-md border border-input bg-transparent p-2 text-sm" value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Describe your service, achievements, and responsibilities..." /></div>
+          </CardContent>
+        </Card>
+      ))}
+      <Button variant="outline" size="sm" onClick={addItem}><Plus className="mr-2 h-4 w-4" /> Add Service Entry</Button>
+    </div>
+  );
+}
+
 function GenericEditor({ data, onUpdate }: { data: any; onUpdate: (data: any) => void }) {
   const items = data.items || [];
   const addItem = () => onUpdate({ ...data, items: [...items, { id: Date.now().toString(), title: "", subtitle: "", description: "" }] });
@@ -492,14 +547,27 @@ function GenericEditor({ data, onUpdate }: { data: any; onUpdate: (data: any) =>
   );
 }
 
-function ResumePreview({ sections, title }: { sections: any[]; title: string }) {
+function ResumePreview({ sections, title, templateId }: { sections: any[]; title: string; templateId?: string }) {
   const contact = sections.find((s) => s.id === "contact")?.fields || {};
+  const tid = templateId || "default";
 
   const sectionRenderers: Record<string, (section: any) => React.ReactNode> = {
-    contact: () => (
+    contact: () => tid === "modern" ? (
+      <div className="contact-info">
+        <h1>{contact.fullName || "Your Name"}</h1>
+        <p className="contact-text">{contact.email || ""}</p>
+        <p className="contact-text">{contact.phone || ""}</p>
+        <p className="contact-text">{contact.location || ""}</p>
+      </div>
+    ) : tid === "creative" ? (
+      <div className="creative-header">
+        <h1>{contact.fullName || "Your Name"}</h1>
+        <p>{[contact.email, contact.phone, contact.location].filter(Boolean).join(" | ")}</p>
+      </div>
+    ) : (
       <div className="text-center">
-        <h1 className="text-2xl font-bold">{contact.fullName || "Your Name"}</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className={`${tid === "professional" ? "" : "text-2xl"} font-bold`}>{contact.fullName || "Your Name"}</h1>
+        <p className={`text-sm ${tid === "professional" ? "contact-text" : "text-muted-foreground"}`}>
           {[contact.email, contact.phone, contact.location].filter(Boolean).join(" | ")}
         </p>
       </div>
@@ -539,10 +607,48 @@ function ResumePreview({ sections, title }: { sections: any[]; title: string }) 
         <p className="text-sm">{s.items.join(" • ")}</p>
       </div>
     ) : null,
+    military: (s) => s.items?.length ? (
+      <div key={s.id}>
+        <h2 className="text-lg font-semibold border-b mb-2">{s.title}</h2>
+        {s.items.map((item: any) => (
+          <div key={item.id} className="mb-2">
+            <div className="flex justify-between"><span className="font-medium">{item.rank} - {item.branch}</span><span className="text-sm text-muted-foreground">{item.startDate} - {item.endDate}</span></div>
+            <p className="text-sm mt-1">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    ) : null,
   };
 
+  const templateClass = tid === "modern" ? "template-modern" : tid === "minimal" ? "template-minimal" : tid === "professional" ? "template-professional" : tid === "creative" ? "template-creative" : "";
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 resume-preview ${templateClass}`}>
+      <style>{`
+        .template-modern { font-family: 'Inter', system-ui, sans-serif; }
+        .template-modern .contact-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 16px; }
+        .template-modern .contact-info h1 { font-size: 20px; font-weight: 700; grid-column: 1 / -1; }
+        .template-modern h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; border: none; margin-bottom: 8px; }
+        .template-modern .section-content { padding-left: 8px; border-left: 2px solid #e2e8f0; }
+        .template-modern .item { margin-bottom: 12px; }
+        .template-minimal { font-family: 'Georgia', serif; }
+        .template-minimal h1 { font-size: 28px; font-weight: 400; letter-spacing: 0.02em; }
+        .template-minimal .contact-text { font-size: 13px; color: #888; }
+        .template-minimal h2 { font-size: 16px; font-weight: 400; border-bottom: 1px solid #ddd; padding-bottom: 2px; margin-bottom: 12px; }
+        .template-minimal .item { margin-bottom: 10px; }
+        .template-minimal .item strong { font-weight: 500; }
+        .template-professional { font-family: 'Times New Roman', serif; }
+        .template-professional h1 { font-size: 26px; font-weight: 700; color: #1a365d; }
+        .template-professional .contact-text { font-size: 13px; color: #2d3748; }
+        .template-professional h2 { font-size: 16px; font-weight: 700; color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 4px; margin-bottom: 12px; }
+        .template-professional .item { margin-bottom: 12px; }
+        .template-creative { font-family: 'Inter', system-ui, sans-serif; }
+        .template-creative .creative-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 8px; margin-bottom: 16px; }
+        .template-creative .creative-header h1 { font-size: 24px; font-weight: 700; color: white; }
+        .template-creative .creative-header p { color: rgba(255,255,255,0.85); }
+        .template-creative h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #667eea; border: none; margin-bottom: 8px; }
+        .template-creative .item { background: #fafafa; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #667eea; }
+      `}</style>
       {contact.fullName && sectionRenderers.contact(sections.find((s) => s.id === "contact")!)}
       {sections.filter((s) => s.id !== "contact" && s.enabled !== false).map((section) => {
         const renderer = sectionRenderers[section.id];
@@ -578,6 +684,7 @@ function getDefaultSections() {
     { id: "volunteer", type: "volunteer", title: "Volunteer Experience", enabled: true, items: [] },
     { id: "awards", type: "awards", title: "Awards", enabled: true, items: [] },
     { id: "patents", type: "patents", title: "Patents", enabled: true, items: [] },
+    { id: "military", type: "military", title: "Military Service", enabled: true, items: [] },
     { id: "hobbies", type: "hobbies", title: "Hobbies", enabled: true, items: [] },
   ];
 }

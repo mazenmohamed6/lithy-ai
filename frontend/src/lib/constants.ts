@@ -28,6 +28,7 @@ export const RESUME_SECTIONS = [
   { id: "volunteer", label: "Volunteer", icon: "Heart" },
   { id: "awards", label: "Awards", icon: "Trophy" },
   { id: "patents", label: "Patents", icon: "Lightbulb" },
+  { id: "military", label: "Military Service", icon: "Shield" },
   { id: "hobbies", label: "Hobbies", icon: "Music" },
 ] as const;
 
