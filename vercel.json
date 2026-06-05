@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "npm run build -w backend",
+  "buildCommand": "cd backend && npm run build",
   "installCommand": "npm install --no-package-lock --legacy-peer-deps",
   "nodeVersion": "22",
   "builds": [{
