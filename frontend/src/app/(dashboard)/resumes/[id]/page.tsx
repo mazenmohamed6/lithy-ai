@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumePreview } from "@/components/resume/ResumePreview";
-import html2canvas from "html2canvas";
+import { toPng } from "dom-to-image-more";
 import jsPDF from "jspdf";
 
 export default function ResumeEditorPage() {
@@ -130,32 +130,20 @@ export default function ResumeEditorPage() {
     if (!el) { toast.error("Preview not ready"); return; }
     toast.info("Generating PDF...");
     try {
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        allowTaint: false,
-        useCORS: false,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = await toPng(el, { quality: 1, pixelRatio: 2 });
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = 210;
       const pdfHeight = 297;
-      const ratio = pdfWidth / canvas.width;
-      const imgHeight = canvas.height * ratio;
+      const img = new Image();
+      img.src = imgData;
+      await img.decode();
+      const ratio = pdfWidth / img.width;
+      const imgHeight = img.height * ratio;
       let y = 0;
       while (y < imgHeight) {
         if (y > 0) pdf.addPage();
         const sliceH = Math.min(pdfHeight, imgHeight - y);
-        const srcY = y / ratio;
-        const srcH = sliceH / ratio;
-        const slice = canvas.getContext("2d")!.getImageData(0, srcY, canvas.width, srcH);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = srcH;
-        sliceCanvas.getContext("2d")!.putImageData(slice, 0, 0);
-        const sliceData = sliceCanvas.toDataURL("image/png");
-        pdf.addImage(sliceData, "PNG", 0, 0, pdfWidth, sliceH);
+        pdf.addImage(imgData, "PNG", 0, -y, pdfWidth, imgHeight);
         y += pdfHeight;
       }
       pdf.save(`${title || "resume"}.pdf`);
