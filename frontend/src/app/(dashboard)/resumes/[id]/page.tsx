@@ -10,9 +10,11 @@ import { api } from "@/lib/api";
 import { RESUME_SECTIONS, RESUME_TEMPLATES, PLANS } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "sonner";
-import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Printer, Crown, Lock } from "lucide-react";
+import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumePreview } from "@/components/resume/ResumePreview";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 export default function ResumeEditorPage() {
   const params = useParams();
@@ -26,9 +28,9 @@ export default function ResumeEditorPage() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "unsaved" | "saving">("saved");
   const [activeSection, setActiveSection] = useState<string>("contact");
   const [previewMode, setPreviewMode] = useState(false);
-  const [autoPrint, setAutoPrint] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const previewRef = useRef<HTMLDivElement>(null);
   const isNew = params.id === "new";
   const [userPlan, setUserPlan] = useState<string>("FREE");
   const canAccessPremium = userPlan === "PRO" || userPlan === "PREMIUM" || userPlan === "PRO_ANNUAL" || userPlan === "PREMIUM_ANNUAL";
@@ -123,20 +125,35 @@ export default function ResumeEditorPage() {
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
-  useEffect(() => {
-    if (previewMode && autoPrint) {
-      const timer = setTimeout(() => { window.print(); setAutoPrint(false); }, 1500);
-      return () => clearTimeout(timer);
+  const handleDownloadPdf = useCallback(async () => {
+    if (!previewRef.current) return;
+    try {
+      const canvas = await html2canvas(previewRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF("p", "mm", "a4");
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      pdf.save(`${title || "resume"}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      toast.error("Failed to generate PDF");
     }
-  }, [previewMode, autoPrint]);
-
-  const handleDownload = useCallback(() => {
-    if (!isNew && params.id) {
-      saveResume();
-      setPreviewMode(true);
-      setAutoPrint(true);
-    }
-  }, [isNew, params.id, saveResume]);
+  }, [title]);
 
   const getCompletionScore = () => {
     let filled = 0; let total = 0;
@@ -230,14 +247,14 @@ export default function ResumeEditorPage() {
           }
         `}</style>
         <div className="flex items-center justify-between mb-4 no-print">
-          <Button variant="ghost" onClick={() => { setPreviewMode(false); setAutoPrint(false); }}>
+          <Button variant="ghost" onClick={() => setPreviewMode(false)}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
           </Button>
-          <Button variant="outline" size="sm" onClick={() => { setAutoPrint(false); window.print(); }}>
+          <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
             <Download className="mr-2 h-4 w-4" /> Save as PDF
           </Button>
         </div>
-        <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8 print-card">
+        <Card ref={previewRef} className="max-w-[800px] mx-auto min-h-[1000px] p-8 print-card">
           <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
         </Card>
       </div>
@@ -350,11 +367,6 @@ export default function ResumeEditorPage() {
                 <Button variant="outline" size="sm" onClick={() => setPreviewMode(true)} className="hidden sm:inline-flex">
                   <Eye className="mr-1.5 h-3.5 w-3.5" /> {locale === "ar" ? "عرض" : "Preview"}
                 </Button>
-                {!isNew && (
-                  <Button variant="outline" size="sm" onClick={handleDownload} className="hidden sm:inline-flex">
-                    <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
-                  </Button>
-                )}
                 <Button size="sm" onClick={saveResume} disabled={saveStatus === "saving"}>
                   <Save className="mr-1.5 h-3.5 w-3.5" /> {saveStatus === "saving" ? "..." : (locale === "ar" ? "حفظ" : "Save")}
                 </Button>
@@ -405,11 +417,6 @@ export default function ResumeEditorPage() {
         <Button variant="outline" size="sm" className="flex-1" onClick={() => setPreviewMode(true)}>
           <Eye className="mr-1.5 h-3.5 w-3.5" /> {locale === "ar" ? "عرض" : "Preview"}
         </Button>
-        {!isNew && (
-          <Button variant="outline" size="sm" className="flex-1" onClick={handleDownload}>
-            <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
-          </Button>
-        )}
         <Button size="sm" className="flex-1" onClick={saveResume} disabled={saveStatus === "saving"}>
           <Save className="mr-1.5 h-3.5 w-3.5" /> {saveStatus === "saving" ? "..." : (locale === "ar" ? "حفظ" : "Save")}
         </Button>
