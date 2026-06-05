@@ -26,6 +26,7 @@ export default function ResumeEditorPage() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "unsaved" | "saving">("saved");
   const [activeSection, setActiveSection] = useState<string>("contact");
   const [previewMode, setPreviewMode] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const isNew = params.id === "new";
@@ -122,10 +123,18 @@ export default function ResumeEditorPage() {
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
+  useEffect(() => {
+    if (previewMode && autoPrint) {
+      const timer = setTimeout(() => { window.print(); setAutoPrint(false); }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [previewMode, autoPrint]);
+
   const handleDownload = useCallback(() => {
     if (!isNew && params.id) {
       saveResume();
-      window.location.href = `/resumes/${params.id}/print`;
+      setPreviewMode(true);
+      setAutoPrint(true);
     }
   }, [isNew, params.id, saveResume]);
 
@@ -210,16 +219,25 @@ export default function ResumeEditorPage() {
 
   if (previewMode) {
     return (
-      <div className="container py-8">
-        <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={() => setPreviewMode(false)}>
+      <div className="container py-8 print-container">
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            .res-root, .res-root * { visibility: visible; }
+            .res-root { position: absolute; left: 0; top: 0; width: 100%; }
+            .print-container { max-width: 100%; padding: 0; }
+            @page { margin: 0; size: letter; }
+          }
+        `}</style>
+        <div className="flex items-center justify-between mb-4 no-print">
+          <Button variant="ghost" onClick={() => { setPreviewMode(false); setAutoPrint(false); }}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Editor
           </Button>
-          <Button variant="outline" size="sm" onClick={handleDownload}>
+          <Button variant="outline" size="sm" onClick={() => { setAutoPrint(false); window.print(); }}>
             <Download className="mr-2 h-4 w-4" /> Save as PDF
           </Button>
         </div>
-        <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
+        <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8 print-card">
           <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
         </Card>
       </div>

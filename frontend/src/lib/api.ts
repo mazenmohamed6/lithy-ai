@@ -155,7 +155,7 @@ class ApiClient {
         throw new Error("Upload timed out. File may be too large.");
       }
       if (err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
-        throw new Error("Unable to reach server. Check your connection and ensure the API URL is configured.");
+        throw new Error(`Unable to reach server at ${this.baseUrl}. Make sure the API server is running and CORS is configured.`);
       }
       throw err;
     }
