@@ -131,21 +131,23 @@ export default function ResumeEditorPage() {
     toast.info("Generating PDF...");
     try {
       await document.fonts.ready;
+      const cssWidth = el.offsetWidth;
       const imgData = await toPng(el, { quality: 1, pixelRatio: 2, bgColor: '#fff' });
       const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = 210;
-      const pdfHeight = 297;
+      const pageW = 210;
+      const pageH = 297;
       const img = new Image();
       img.src = imgData;
       await img.decode();
-      const ratio = pdfWidth / img.width;
-      const imgHeight = img.height * ratio;
+      const contentW = cssWidth / 96 * 25.4;
+      const x = (pageW - contentW) / 2;
+      const ratio = contentW / img.width;
+      const contentH = img.height * ratio;
       let y = 0;
-      while (y < imgHeight) {
+      while (y < contentH) {
         if (y > 0) pdf.addPage();
-        const sliceH = Math.min(pdfHeight, imgHeight - y);
-        pdf.addImage(imgData, "PNG", 0, -y, pdfWidth, imgHeight);
-        y += pdfHeight;
+        pdf.addImage(imgData, "PNG", x, -y, contentW, contentH);
+        y += pageH;
       }
       pdf.save(`${title || "resume"}.pdf`);
     } catch (err) {
