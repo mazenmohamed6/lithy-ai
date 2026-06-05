@@ -126,7 +126,7 @@ export default function ResumeEditorPage() {
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownloadPdf = useCallback(async () => {
-    const el = previewRef.current;
+    const el = previewRef.current?.querySelector('.res-root') as HTMLElement | null;
     if (!el) { toast.error("Preview not ready"); return; }
     toast.info("Generating PDF...");
     try {
