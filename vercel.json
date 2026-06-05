@@ -1,13 +1,6 @@
 {
-  "buildCommand": "cd backend && npm run build",
+  "framework": "nestjs",
+  "buildCommand": "npm run build -w backend && cp -r backend/dist dist",
   "installCommand": "npm install --no-package-lock --legacy-peer-deps",
-  "nodeVersion": "22",
-  "builds": [{
-    "src": "api/index.js",
-    "use": "@vercel/node",
-    "config": {
-      "includeFiles": ["backend/dist/**"]
-    }
-  }],
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+  "nodeVersion": "22.x"
 }
