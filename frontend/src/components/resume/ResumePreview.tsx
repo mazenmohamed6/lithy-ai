@@ -125,7 +125,7 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
   return (
     <div className={`res-root res-${tid}`}>
       <style>{`
-        .res-root { max-width: 800px; margin: 0 auto; }
+        .res-root { max-width: 800px; margin: 0 auto; background: #fff; }
 
         /* ===== CLASSIC ===== */
         .res-classic, .res-default {

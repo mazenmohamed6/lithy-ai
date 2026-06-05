@@ -132,7 +132,7 @@ export default function ResumeEditorPage() {
     try {
       await document.fonts.ready;
       const cssWidth = el.offsetWidth;
-      const imgData = await toPng(el, { quality: 1, pixelRatio: 2, bgColor: '#fff' });
+      const imgData = await toPng(el, { quality: 1, pixelRatio: 2 });
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
       const pageH = 297;
