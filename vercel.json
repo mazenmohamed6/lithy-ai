@@ -1,6 +1,14 @@
 {
-  "rootDirectory": "backend",
+  "framework": null,
+  "buildCommand": "npm run build -w backend",
   "installCommand": "npm install --no-package-lock --legacy-peer-deps",
   "nodeVersion": "22",
+  "builds": [{
+    "src": "api/index.js",
+    "use": "@vercel/node",
+    "config": {
+      "includeFiles": ["backend/dist/**"]
+    }
+  }],
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
 }
