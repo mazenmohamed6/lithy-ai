@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumePreview } from "@/components/resume/ResumePreview";
-import { toPng } from "dom-to-image-more";
+import { toSvg } from "dom-to-image-more";
 import jsPDF from "jspdf";
 
 export default function ResumeEditorPage() {
@@ -134,24 +134,34 @@ export default function ResumeEditorPage() {
       const hadMinH = card.classList.contains('min-h-[1000px]');
       if (hadMinH) { card.classList.remove('min-h-[1000px]'); }
 
-      const imgData = await toPng(card, { quality: 1, bgcolor: '#fff' });
+      const svgData = await toSvg(card, { bgcolor: '#fff' });
 
       if (hadMinH) { card.classList.add('min-h-[1000px]'); }
+
+      const svgImg = new Image();
+      svgImg.src = svgData;
+      await svgImg.decode();
+
+      const pixelRatio = 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = svgImg.naturalWidth * pixelRatio;
+      canvas.height = svgImg.naturalHeight * pixelRatio;
+      const ctx = canvas.getContext('2d')!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(svgImg, 0, 0, canvas.width, canvas.height);
+
+      const imgData = canvas.toDataURL('image/png');
 
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
       const pageH = 297;
-      const img = new Image();
-      img.src = imgData;
-      await img.decode();
       const contentW = pageW;
-      const x = 0;
-      const ratio = contentW / img.width;
-      const contentH = img.height * ratio;
+      const ratio = contentW / canvas.width;
+      const contentH = canvas.height * ratio;
       let y = 0;
       while (y < contentH) {
         if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", x, -y, contentW, contentH);
+        pdf.addImage(imgData, "PNG", 0, -y, contentW, contentH);
         y += pageH;
       }
       pdf.save(`${title || "resume"}.pdf`);
