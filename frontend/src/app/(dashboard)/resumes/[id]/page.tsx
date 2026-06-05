@@ -126,32 +126,43 @@ export default function ResumeEditorPage() {
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownloadPdf = useCallback(async () => {
-    if (!previewRef.current) return;
+    const el = previewRef.current;
+    if (!el) { toast.error("Preview not ready"); return; }
+    toast.info("Generating PDF...");
     try {
-      const canvas = await html2canvas(previewRef.current, {
+      const canvas = await html2canvas(el, {
         scale: 2,
-        useCORS: true,
+        allowTaint: false,
+        useCORS: false,
         logging: false,
+        backgroundColor: "#ffffff",
       });
       const imgData = canvas.toDataURL("image/png");
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
       const pdf = new jsPDF("p", "mm", "a4");
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const ratio = pdfWidth / canvas.width;
+      const imgHeight = canvas.height * ratio;
+      let y = 0;
+      while (y < imgHeight) {
+        if (y > 0) pdf.addPage();
+        const sliceH = Math.min(pdfHeight, imgHeight - y);
+        const srcY = y / ratio;
+        const srcH = sliceH / ratio;
+        const slice = canvas.getContext("2d")!.getImageData(0, srcY, canvas.width, srcH);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = srcH;
+        sliceCanvas.getContext("2d")!.putImageData(slice, 0, 0);
+        const sliceData = sliceCanvas.toDataURL("image/png");
+        pdf.addImage(sliceData, "PNG", 0, 0, pdfWidth, sliceH);
+        y += pdfHeight;
       }
       pdf.save(`${title || "resume"}.pdf`);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error("PDF generation failed:", err);
-      toast.error("Failed to generate PDF");
+      toast.error(msg);
     }
   }, [title]);
 
