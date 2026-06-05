@@ -134,7 +134,7 @@ export default function ResumeEditorPage() {
       const hadMinH = card.classList.contains('min-h-[1000px]');
       if (hadMinH) { card.classList.remove('min-h-[1000px]'); }
 
-      const imgData = await toPng(card, { quality: 1, pixelRatio: 2, bgcolor: '#fff' });
+      const imgData = await toPng(card, { quality: 1, bgcolor: '#fff' });
 
       if (hadMinH) { card.classList.add('min-h-[1000px]'); }
 
