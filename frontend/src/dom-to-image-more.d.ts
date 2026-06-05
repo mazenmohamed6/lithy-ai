@@ -6,7 +6,7 @@ declare module "dom-to-image-more" {
     height?: number;
     style?: Record<string, string>;
     filter?: (node: Node) => boolean;
-    bgColor?: string;
+    bgcolor?: string;
     imagePlaceholder?: string;
     cacheBust?: boolean;
   }

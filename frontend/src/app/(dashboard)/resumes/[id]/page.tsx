@@ -126,21 +126,26 @@ export default function ResumeEditorPage() {
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownloadPdf = useCallback(async () => {
-    const el = previewRef.current?.querySelector('.res-root') as HTMLElement | null;
-    if (!el) { toast.error("Preview not ready"); return; }
+    const card = previewRef.current as HTMLElement | null;
+    if (!card) { toast.error("Preview not ready"); return; }
     toast.info("Generating PDF...");
     try {
       await document.fonts.ready;
-      const cssWidth = el.offsetWidth;
-      const imgData = await toPng(el, { quality: 1, pixelRatio: 2, bgcolor: '#fff' });
+      const hadMinH = card.classList.contains('min-h-[1000px]');
+      if (hadMinH) { card.classList.remove('min-h-[1000px]'); }
+
+      const imgData = await toPng(card, { quality: 1, pixelRatio: 2, bgcolor: '#fff' });
+
+      if (hadMinH) { card.classList.add('min-h-[1000px]'); }
+
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
       const pageH = 297;
       const img = new Image();
       img.src = imgData;
       await img.decode();
-      const contentW = cssWidth / 96 * 25.4;
-      const x = (pageW - contentW) / 2;
+      const contentW = pageW;
+      const x = 0;
       const ratio = contentW / img.width;
       const contentH = img.height * ratio;
       let y = 0;
@@ -151,6 +156,9 @@ export default function ResumeEditorPage() {
       }
       pdf.save(`${title || "resume"}.pdf`);
     } catch (err) {
+      if (card.classList.contains('min-h-[1000px]') === false) {
+        card.classList.add('min-h-[1000px]');
+      }
       const msg = err instanceof Error ? err.message : String(err);
       console.error("PDF generation failed:", err);
       toast.error(msg);
