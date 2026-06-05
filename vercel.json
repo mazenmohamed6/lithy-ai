@@ -1,7 +1,5 @@
 {
   "rootDirectory": "backend",
-  "framework": null,
-  "buildCommand": "npm run build",
   "installCommand": "npm install --no-package-lock --legacy-peer-deps",
   "nodeVersion": "22",
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
