@@ -131,16 +131,16 @@ export default function ResumeEditorPage() {
     toast.info("Generating PDF...");
     try {
       await document.fonts.ready;
-      const imgData = await toPng(el, { quality: 1, pixelRatio: 2 });
+      const cssWidth = el.offsetWidth;
+      const imgData = await toPng(el, { quality: 1, pixelRatio: 2, bgcolor: '#fff' });
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
       const pageH = 297;
-      const margin = 14;
-      const contentW = pageW - margin * 2;
-      const x = margin;
       const img = new Image();
       img.src = imgData;
       await img.decode();
+      const contentW = cssWidth / 96 * 25.4;
+      const x = (pageW - contentW) / 2;
       const ratio = contentW / img.width;
       const contentH = img.height * ratio;
       let y = 0;
