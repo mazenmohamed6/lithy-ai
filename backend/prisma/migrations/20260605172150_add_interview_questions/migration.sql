@@ -1,0 +1,2 @@
+﻿-- AlterEnum
+ALTER TYPE "AIGenerationType" ADD VALUE 'INTERVIEW_QUESTIONS';

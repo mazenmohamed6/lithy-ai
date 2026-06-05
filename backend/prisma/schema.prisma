@@ -29,6 +29,7 @@ enum AIGenerationType {
   LINKEDIN_OPTIMIZATION
   ATS_SCAN
   JOB_MATCH
+  INTERVIEW_QUESTIONS
 }
 
 enum AddonType {
@@ -44,28 +45,28 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  profile       UserProfile?
-  subscription  UserSubscription?
-  resumes       Resume[]
-  coverLetters  CoverLetter[]
-  atsScores     ATSScore[]
-  jobMatches    JobMatch[]
+  profile          UserProfile?
+  subscription     UserSubscription?
+  resumes          Resume[]
+  coverLetters     CoverLetter[]
+  atsScores        ATSScore[]
+  jobMatches       JobMatch[]
   linkedInProfiles LinkedInProfile[]
-  aiGenerations AIGeneration[]
-  addonPurchases AddonPurchase[]
-  payments      Payment[]
-  emailLogs     EmailLog[]
-  auditLogs     AuditLog[]
-  sessions      Session[]
-  blogPosts     BlogPost[]
-  uploadedFiles UploadedFile[]
+  aiGenerations    AIGeneration[]
+  addonPurchases   AddonPurchase[]
+  payments         Payment[]
+  emailLogs        EmailLog[]
+  auditLogs        AuditLog[]
+  sessions         Session[]
+  blogPosts        BlogPost[]
+  uploadedFiles    UploadedFile[]
 
   @@map("users")
 }
 
 model UserProfile {
-  id              String  @id @default(cuid())
-  userId          String  @unique
+  id              String   @id @default(cuid())
+  userId          String   @unique
   phone           String?  @unique
   location        String?
   linkedinUrl     String?
@@ -75,7 +76,7 @@ model UserProfile {
   website         String?
   avatarUrl       String?
   skills          String[] @default([])
-  experienceLevel String?  // entry, mid, senior, executive
+  experienceLevel String? // entry, mid, senior, executive
   resumeViews     Int      @default(0)
   resumeDownloads Int      @default(0)
   createdAt       DateTime @default(now())
@@ -87,38 +88,38 @@ model UserProfile {
 }
 
 model SubscriptionPlan {
-  id             String   @id @default(cuid())
-  name           String   @unique // FREE, PRO, PREMIUM
-  description    String?
-  priceEgp       Float?
-  priceUsd       Float?
-  interval       String   @default("month") // month, year
-  stripePriceId  String?
-  annualDiscountPct Float @default(20)
-  features       Json     @default("{}")
-  isActive       Boolean  @default(true)
-  sortOrder      Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String   @unique // FREE, PRO, PREMIUM
+  description       String?
+  priceEgp          Float?
+  priceUsd          Float?
+  interval          String   @default("month") // month, year
+  stripePriceId     String?
+  annualDiscountPct Float    @default(20)
+  features          Json     @default("{}")
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  subscriptions  UserSubscription[]
+  subscriptions UserSubscription[]
 
   @@map("subscription_plans")
 }
 
 model UserSubscription {
-  id                 String             @id @default(cuid())
-  userId             String             @unique
-  planId             String
-  status             SubscriptionStatus @default(TRIALING)
-  stripeSubscriptionId String?          @unique
-  stripeCustomerId   String?
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  trialEnd           DateTime?
-  cancelAtPeriodEnd  Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  planId               String
+  status               SubscriptionStatus @default(TRIALING)
+  stripeSubscriptionId String?            @unique
+  stripeCustomerId     String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  trialEnd             DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   user User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan SubscriptionPlan @relation(fields: [planId], references: [id])
@@ -127,14 +128,14 @@ model UserSubscription {
 }
 
 model AddonPack {
-  id       String    @id @default(cuid())
-  type           AddonType
-  credits        Int
-  priceEgp       Float
-  priceUsd       Float?
-  stripePriceId  String?
-  isActive       Boolean   @default(true)
-  createdAt      DateTime @default(now())
+  id            String    @id @default(cuid())
+  type          AddonType
+  credits       Int
+  priceEgp      Float
+  priceUsd      Float?
+  stripePriceId String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
 
   purchases AddonPurchase[]
 
@@ -155,16 +156,16 @@ model AddonPurchase {
 }
 
 model Payment {
-  id                String   @id @default(cuid())
-  userId            String
-  stripePaymentId   String?  @unique
-  stripeInvoiceId   String?
-  amount            Float
-  currency          String   @default("egp")
-  status            String   // succeeded, failed, pending, refunded
-  description       String?
-  paymentMethod     String?
-  createdAt         DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  stripePaymentId String?  @unique
+  stripeInvoiceId String?
+  amount          Float
+  currency        String   @default("egp")
+  status          String // succeeded, failed, pending, refunded
+  description     String?
+  paymentMethod   String?
+  createdAt       DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -183,12 +184,12 @@ model Resume {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions     ResumeVersion[]
-  exports      ResumeExport[]
-  coverLetters CoverLetter[]
-  atsScores    ATSScore[]
-  jobMatches   JobMatch[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions      ResumeVersion[]
+  exports       ResumeExport[]
+  coverLetters  CoverLetter[]
+  atsScores     ATSScore[]
+  jobMatches    JobMatch[]
   uploadedFiles UploadedFile[]
 
   @@index([userId])
@@ -197,11 +198,11 @@ model Resume {
 }
 
 model ResumeVersion {
-  id        String   @id @default(cuid())
-  resumeId  String
-  sections  Json
-  versionNumber Int  @default(1)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  resumeId      String
+  sections      Json
+  versionNumber Int      @default(1)
+  createdAt     DateTime @default(now())
 
   resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
@@ -212,7 +213,7 @@ model ResumeVersion {
 model ResumeExport {
   id        String   @id @default(cuid())
   resumeId  String
-  format    String   // pdf, docx, txt
+  format    String // pdf, docx, txt
   url       String
   createdAt DateTime @default(now())
 
@@ -241,17 +242,17 @@ model UploadedFile {
 }
 
 model CoverLetter {
-  id              String   @id @default(cuid())
-  userId          String
-  resumeId        String?
-  title           String   @default("Untitled Cover Letter")
-  content         String
-  tone            String   @default("professional")
-  jobDescription  String?
-  companyName     String?
-  recipientName   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String
+  resumeId       String?
+  title          String   @default("Untitled Cover Letter")
+  content        String
+  tone           String   @default("professional")
+  jobDescription String?
+  companyName    String?
+  recipientName  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   resume Resume? @relation(fields: [resumeId], references: [id], onDelete: SetNull)
@@ -278,14 +279,14 @@ model LinkedInProfile {
 }
 
 model ATSScore {
-  id             String   @id @default(cuid())
-  resumeId       String
-  userId         String
-  jobDescription String?
-  score          Float
-  breakdown      Json     @default("{}")
-  recommendations Json    @default("[]")
-  createdAt      DateTime @default(now())
+  id              String   @id @default(cuid())
+  resumeId        String
+  userId          String
+  jobDescription  String?
+  score           Float
+  breakdown       Json     @default("{}")
+  recommendations Json     @default("[]")
+  createdAt       DateTime @default(now())
 
   resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -314,16 +315,16 @@ model JobMatch {
 }
 
 model AIGeneration {
-  id             String           @id @default(cuid())
-  userId         String
-  type           AIGenerationType
-  promptTokens   Int              @default(0)
-  completionTokens Int            @default(0)
-  model          String           @default("gpt-4o")
-  costEgp        Float?
-  status         String           @default("completed") // processing, completed, failed
-  errorMessage   String?
-  createdAt      DateTime         @default(now())
+  id               String           @id @default(cuid())
+  userId           String
+  type             AIGenerationType
+  promptTokens     Int              @default(0)
+  completionTokens Int              @default(0)
+  model            String           @default("gpt-4o")
+  costEgp          Float?
+  status           String           @default("completed") // processing, completed, failed
+  errorMessage     String?
+  createdAt        DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -349,31 +350,31 @@ model Session {
 }
 
 model FeatureFlag {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  enabled   Boolean  @default(false)
-  percentage Int?    // 0-100 rollout percentage
-  userIds   String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  key        String   @unique
+  enabled    Boolean  @default(false)
+  percentage Int? // 0-100 rollout percentage
+  userIds    String[] @default([])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("feature_flags")
 }
 
 model BlogPost {
-  id        String   @id @default(cuid())
-  authorId  String
-  title     String
-  slug      String   @unique
-  excerpt   String?
-  content   String
+  id         String   @id @default(cuid())
+  authorId   String
+  title      String
+  slug       String   @unique
+  excerpt    String?
+  content    String
   coverImage String?
-  category  String?
-  tags      String[] @default([])
-  published Boolean  @default(false)
-  featured  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  category   String?
+  tags       String[] @default([])
+  published  Boolean  @default(false)
+  featured   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -396,11 +397,11 @@ model LegalPage {
 model EmailLog {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // welcome, verification, reset, subscription, payment, marketing, etc.
+  type      String // welcome, verification, reset, subscription, payment, marketing, etc.
   recipient String
   subject   String
   sentAt    DateTime @default(now())
-  status    String   // sent, delivered, bounced, failed
+  status    String // sent, delivered, bounced, failed
   error     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -427,9 +428,9 @@ model AuditLog {
 }
 
 model AppSettings {
-  id    String @id @default(cuid())
-  key   String @unique
-  value Json
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
@@ -464,7 +465,7 @@ enum AccountLinkStatus {
 /// Ties together identity signals and cumulative usage for one real person.
 /// Survives account deletion — never removed.
 model IdentityLedger {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Identity correlation signals
   phone              String?
@@ -472,19 +473,19 @@ model IdentityLedger {
   browserFingerprint String?
 
   // All-time usage totals across every account this person has ever had
-  totalAiGenerations    Int  @default(0)
-  totalAtsScans         Int  @default(0)
-  totalResumeExports    Int  @default(0)
-  totalCoverLetters     Int  @default(0)
+  totalAiGenerations Int @default(0)
+  totalAtsScans      Int @default(0)
+  totalResumeExports Int @default(0)
+  totalCoverLetters  Int @default(0)
 
   // Free-plan lifecycle
-  freePlanActivated     Boolean @default(false)
-  freePlanExhausted     Boolean @default(false)
+  freePlanActivated Boolean @default(false)
+  freePlanExhausted Boolean @default(false)
 
   // Risk assessment
-  riskScore             Int      @default(0)
-  riskLevel             RiskLevel @default(NORMAL)
-  flags                 Json     @default("[]") // ["trusted","suspicious","manual_review","phone_verified"]
+  riskScore Int       @default(0)
+  riskLevel RiskLevel @default(NORMAL)
+  flags     Json      @default("[]") // ["trusted","suspicious","manual_review","phone_verified"]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -504,18 +505,18 @@ model IdentityLedger {
 /// Maps a Supabase/Prisma user ID to an IdentityLedger.
 /// Preserves user metadata even after the user deletes their account.
 model LinkedAccount {
-  id          String   @id @default(cuid())
-  ledgerId    String
-  userId      String?  // Nullable — user may delete their account
-  email       String?  // Preserved across deletion
-  oauthProvider String?
-  oauthId     String?
-  status      AccountLinkStatus @default(ACTIVE)
-  ipAddresses Json     @default("[]")
-  userAgents  Json     @default("[]")
+  id               String            @id @default(cuid())
+  ledgerId         String
+  userId           String? // Nullable — user may delete their account
+  email            String? // Preserved across deletion
+  oauthProvider    String?
+  oauthId          String?
+  status           AccountLinkStatus @default(ACTIVE)
+  ipAddresses      Json              @default("[]")
+  userAgents       Json              @default("[]")
   stripeCustomerId String?
-  createdAt   DateTime @default(now())
-  deletedAt   DateTime?
+  createdAt        DateTime          @default(now())
+  deletedAt        DateTime?
 
   ledger IdentityLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
 
@@ -530,7 +531,7 @@ model LinkedAccount {
 model RiskEvent {
   id            String   @id @default(cuid())
   ledgerId      String
-  eventType     String   // ACCOUNT_CREATED, ACCOUNT_DELETED, FREE_PLAN_ACTIVATED, FREE_PLAN_RESTORED, RISK_SCORE_CHANGED, FRAUD_ALERT_TRIGGERED, IDENTITY_LINKED, USAGE_EXCEEDED
+  eventType     String // ACCOUNT_CREATED, ACCOUNT_DELETED, FREE_PLAN_ACTIVATED, FREE_PLAN_RESTORED, RISK_SCORE_CHANGED, FRAUD_ALERT_TRIGGERED, IDENTITY_LINKED, USAGE_EXCEEDED
   riskDelta     Int      @default(0)
   previousScore Int      @default(0)
   newScore      Int      @default(0)
@@ -547,15 +548,15 @@ model RiskEvent {
 
 /// Admin review queue for suspicious identities. Never deleted.
 model FraudAlert {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   ledgerId   String
-  type       String   // MULTIPLE_ACCOUNTS, RAPID_CREATION_DELETION, EXCESSIVE_USAGE, SUSPICIOUS_PATTERN
+  type       String // MULTIPLE_ACCOUNTS, RAPID_CREATION_DELETION, EXCESSIVE_USAGE, SUSPICIOUS_PATTERN
   severity   AlertSeverity @default(MEDIUM)
   status     AlertStatus   @default(OPEN)
-  details    Json      @default("{}")
-  createdAt  DateTime  @default(now())
+  details    Json          @default("{}")
+  createdAt  DateTime      @default(now())
   resolvedAt DateTime?
-  resolvedBy String?   // Admin user ID who resolved this
+  resolvedBy String? // Admin user ID who resolved this
 
   ledger IdentityLedger @relation(fields: [ledgerId], references: [id], onDelete: Cascade)
 

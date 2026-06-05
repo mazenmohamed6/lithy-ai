@@ -212,6 +212,85 @@ export class AiService {
     }
   }
 
+  async generateInterviewQuestions(userId: string, userEmail: string, data: {
+    resume: any;
+    jobTitle: string;
+    jobDescription?: string;
+    companyName?: string;
+    language: 'en' | 'ar';
+  }) {
+    await this.ensureUserExists(userId, userEmail);
+    await this.checkUsageLimit(userId, 'INTERVIEW_QUESTIONS');
+
+    try {
+      const languageInstruction = data.language === 'ar'
+        ? 'Respond entirely in Arabic. All questions, answers, and guidance must be in Arabic.'
+        : 'Respond entirely in English.';
+
+      const systemPrompt = `You are an expert interview coach and career advisor. Generate a personalized interview preparation set.
+
+${languageInstruction}
+
+Return JSON with the following structure:
+{
+  "technicalQuestions": [
+    {
+      "question": "string",
+      "category": "string (e.g. JavaScript, System Design, etc.)",
+      "difficulty": "junior | mid | senior",
+      "approach": "string (key points to solve, not full solution)",
+      "keyPoints": ["string"]
+    }
+  ],
+  "behavioralQuestions": [
+    {
+      "question": "string (in STAR format context)",
+      "category": "leadership | teamwork | problem-solving | conflict | communication",
+      "starFramework": {
+        "situation": "string (how to set up the scenario)",
+        "task": "string (what needed to be done)",
+        "action": "string (what they did)",
+        "result": "string (the outcome)"
+      }
+    }
+  ],
+  "companySpecificQuestions": []
+}
+
+For companySpecificQuestions:
+- If companyName is provided, generate 3-5 company-specific questions about culture fit, role expectations, and common hiring focus areas for that company
+- If no companyName provided, return an empty array
+
+For behavioral questions, use STAR (Situation, Task, Action, Result) framework guidance.
+For technical questions, provide the question, difficulty level, and approach guidance (not full solutions).
+
+Keep all content practical, concise, and interview-ready.`;
+
+      const completion = await this.ensureAi().chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: JSON.stringify({
+            resume: data.resume,
+            jobTitle: data.jobTitle,
+            jobDescription: data.jobDescription || '',
+            companyName: data.companyName || '',
+          })},
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'INTERVIEW_QUESTIONS', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'INTERVIEW_QUESTIONS', error.message);
+      throw new BadRequestException(error.message || 'AI interview questions generation failed');
+    }
+  }
+
   async optimizeLinkedIn(userId: string, userEmail: string, data: { profile: any }) {
     await this.ensureUserExists(userId, userEmail);
     await this.checkUsageLimit(userId, 'LINKEDIN_OPTIMIZATION');
@@ -266,6 +345,7 @@ export class AiService {
       ATS_SCAN: { key: 'atsScans', isBool: false },
       JOB_MATCH: { key: 'jobMatches', isBool: false },
       LINKEDIN_OPTIMIZATION: { key: 'linkedinOptimizer', isBool: true },
+      INTERVIEW_QUESTIONS: { key: 'aiGenerations', isBool: false },
     };
 
     const feature = featureMap[type];
@@ -306,7 +386,7 @@ export class AiService {
     const identityUsage = await this.antiAbuseService.getIdentityUsage(userId);
     if (identityUsage.freePlanExhausted) {
       // Determine which feature type matches
-      if (type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER') {
+      if (type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER' || type === 'INTERVIEW_QUESTIONS') {
         if (identityUsage.ledgerTotalAiGenerations >= limit) {
           throw new BadRequestException(`Free plan benefits exhausted. Upgrade to access ${type}.`);
         }
@@ -320,7 +400,7 @@ export class AiService {
     }
 
     // Combine ledger usage (from deleted accounts) with current account usage
-    const ledgerTotal = type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER'
+    const ledgerTotal = type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER' || type === 'INTERVIEW_QUESTIONS'
       ? identityUsage.ledgerTotalAiGenerations
       : type === 'ATS_SCAN' || type === 'JOB_MATCH'
         ? identityUsage.ledgerTotalAtsScans

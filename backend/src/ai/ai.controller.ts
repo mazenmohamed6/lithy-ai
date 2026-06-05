@@ -40,6 +40,12 @@ export class AiController {
     return this.aiService.analyzeJobMatch(user.id, user.email, body);
   }
 
+  @Post('interview-questions')
+  @ApiOperation({ summary: 'Generate interview questions' })
+  async generateInterviewQuestions(@CurrentUser() user: any, @Body() body: any) {
+    return this.aiService.generateInterviewQuestions(user.id, user.email, body);
+  }
+
   @Post('optimize-linkedin')
   @ApiOperation({ summary: 'Optimize LinkedIn profile' })
   async optimizeLinkedIn(@CurrentUser() user: any, @Body() body: any) {
