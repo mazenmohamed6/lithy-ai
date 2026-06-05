@@ -125,7 +125,7 @@ export default function ResumeEditorPage() {
 
   useEffect(() => {
     if (previewMode && autoPrint) {
-      const timer = setTimeout(() => { window.print(); setAutoPrint(false); }, 800);
+      const timer = setTimeout(() => { window.print(); setAutoPrint(false); }, 1500);
       return () => clearTimeout(timer);
     }
   }, [previewMode, autoPrint]);
