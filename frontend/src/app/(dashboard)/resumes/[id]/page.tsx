@@ -130,7 +130,8 @@ export default function ResumeEditorPage() {
     if (!el) { toast.error("Preview not ready"); return; }
     toast.info("Generating PDF...");
     try {
-      const imgData = await toPng(el, { quality: 1, pixelRatio: 2 });
+      await document.fonts.ready;
+      const imgData = await toPng(el, { quality: 1, pixelRatio: 2, bgColor: '#fff' });
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = 210;
       const pdfHeight = 297;
