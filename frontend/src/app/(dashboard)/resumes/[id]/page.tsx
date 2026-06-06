@@ -132,11 +132,14 @@ export default function ResumeEditorPage() {
     try {
       await document.fonts.ready;
       const hadMinH = card.classList.contains('min-h-[1000px]');
+      const hadPadding = card.classList.contains('p-8');
       if (hadMinH) { card.classList.remove('min-h-[1000px]'); }
+      if (hadPadding) { card.classList.remove('p-8'); }
 
       const svgData = await toSvg(card, { bgcolor: '#fff' });
 
       if (hadMinH) { card.classList.add('min-h-[1000px]'); }
+      if (hadPadding) { card.classList.add('p-8'); }
 
       const svgImg = new Image();
       svgImg.src = svgData;
@@ -152,9 +155,9 @@ export default function ResumeEditorPage() {
 
       const imgData = canvas.toDataURL('image/png');
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageW = 210;
-      const pageH = 297;
+      const pdf = new jsPDF("p", "mm", "letter");
+      const pageW = 215.9;
+      const pageH = 279.4;
       const contentW = pageW;
       const ratio = contentW / canvas.width;
       const contentH = canvas.height * ratio;

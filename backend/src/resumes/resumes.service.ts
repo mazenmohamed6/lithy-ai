@@ -304,7 +304,7 @@ export class ResumesService {
 
     if (templateId === 'modern') {
       css = `
-.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1e293b;line-height:1.5}
+.res-root{max-width:800px;margin:0 auto;background:#fff;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#1e293b;line-height:1.5}
 .res-contact{background:#f1f5f9;border-radius:10px;padding:20px 24px;margin-bottom:20px}
 .res-name{font-size:22px;font-weight:700;color:#0f172a;margin:0 0 8px}
 .res-contact-grid{display:flex;flex-wrap:wrap;gap:6px}
@@ -319,10 +319,10 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#475569;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#1e293b;background:#eef2ff;padding:4px 12px;border-radius:6px;font-weight:500}`;
-      headerHtml = `<div class="res-contact res-root" style="margin-top:0"><h1 class="res-name">${contact.fullName || resume.title}</h1><div class="res-contact-grid">${items.map((i) => `<span class="res-contact-chip">${i}</span>`).join('')}</div></div>`;
+      headerHtml = `<div class="res-contact"><h1 class="res-name">${contact.fullName || resume.title}</h1><div class="res-contact-grid">${items.map((i) => `<span class="res-contact-chip">${i}</span>`).join('')}</div></div>`;
     } else if (templateId === 'minimal') {
       css = `
-.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#333;line-height:1.5}
+.res-root{max-width:800px;margin:0 auto;background:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#333;line-height:1.5}
 .res-header-minimal{text-align:center;margin-bottom:24px}
 .res-name{font-size:30px;font-weight:200;letter-spacing:3px;color:#111;margin:0 0 6px;text-transform:uppercase}
 .res-contact-bar{font-size:10px;color:#999;letter-spacing:1px;margin:0}
@@ -336,10 +336,10 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#555;line-height:1.7;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:4px}
 .res-skill-tag{font-size:10px;color:#666;padding:2px 8px;border:1px solid #eee;letter-spacing:.5px}`;
-      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-minimal"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  /  ')}</p></div></div>`;
+      headerHtml = `<div class="res-header-minimal"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  /  ')}</p></div>`;
     } else if (templateId === 'professional') {
       css = `
-.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:Georgia,'Times New Roman',serif;color:#2c3e50;line-height:1.5}
+.res-root{max-width:800px;margin:0 auto;background:#fff;font-family:Georgia,'Times New Roman',serif;color:#2c3e50;line-height:1.5}
 .res-header-professional{text-align:center;margin-bottom:20px;padding:0 40px}
 .res-prof-rule-top{width:100%;height:2px;background:#1e3a5f;margin-bottom:12px}
 .res-name{font-size:28px;font-weight:700;color:#1e3a5f;letter-spacing:2px;margin:0 0 4px;text-transform:uppercase}
@@ -357,10 +357,10 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#444;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#2c3e50;background:#edf2f7;padding:3px 10px}`;
-      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-professional"><div class="res-prof-rule-top"></div><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-prof-rule-bottom"></div></div></div>`;
+      headerHtml = `<div class="res-header-professional"><div class="res-prof-rule-top"></div><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-prof-rule-bottom"></div></div>`;
     } else if (templateId === 'creative') {
       css = `
-.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#18181b;line-height:1.5}
+.res-root{max-width:800px;margin:0 auto;background:#fff;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#18181b;line-height:1.5}
 .res-header-creative{background:linear-gradient(135deg,#f43f5e 0%,#fb7185 50%,#e11d48 100%);color:#fff;padding:28px 32px;border-radius:6px;margin-bottom:20px;text-align:center}
 .res-name{font-size:26px;font-weight:800;color:#fff;margin:0 0 4px;letter-spacing:-.5px}
 .res-contact-bar{font-size:12px;color:rgba(255,255,255,.9);letter-spacing:.3px;margin:0}
@@ -375,10 +375,10 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#52525b;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#18181b;background:#fce7f3;padding:4px 12px;border-radius:20px;font-weight:500}`;
-      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-creative"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  ·  ')}</p></div></div>`;
+      headerHtml = `<div class="res-header-creative"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  ·  ')}</p></div>`;
     } else {
       css = `
-.res-root{max-width:800px;margin:40px auto;padding:20px;font-family:Georgia,'Times New Roman',serif;color:#2d2d2d;line-height:1.5}
+.res-root{max-width:800px;margin:0 auto;background:#fff;font-family:Georgia,'Times New Roman',serif;color:#2d2d2d;line-height:1.5}
 .res-header-classic{text-align:center;margin-bottom:20px}
 .res-name{font-size:26px;font-weight:700;letter-spacing:1px;color:#1a1a1a;margin:0 0 4px}
 .res-contact-bar{font-size:11px;color:#666;letter-spacing:.5px;margin:0 0 10px}
@@ -394,14 +394,16 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#444;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#555;background:#f5f2eb;padding:3px 10px;border-radius:2px}`;
-      headerHtml = `<div class="res-root" style="margin-top:0"><div class="res-header-classic"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-classic-rule"></div></div></div>`;
+      headerHtml = `<div class="res-header-classic"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-classic-rule"></div></div>`;
     }
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${resume.title}</title>
 <style>${css}</style></head><body>
-  ${headerHtml}
-  <div class="res-root">${sectionHtml}</div>
+  <div class="res-root">
+    ${headerHtml}
+    ${sectionHtml}
+  </div>
 </body></html>`;
   }
 
@@ -436,7 +438,7 @@ export class ResumesService {
       const pdf = await page.pdf({
         format: 'Letter',
         printBackground: true,
-        margin: { top: '0.6in', bottom: '0.6in', left: '0.6in', right: '0.6in' },
+        margin: { top: '0.4in', bottom: '0.4in', left: '0.5in', right: '0.5in' },
       });
       return Buffer.from(pdf);
     } finally {
