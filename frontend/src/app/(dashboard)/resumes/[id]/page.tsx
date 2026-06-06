@@ -30,7 +30,6 @@ export default function ResumeEditorPage() {
   const [previewMode, setPreviewMode] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
-  const previewRef = useRef<HTMLDivElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
   const isNew = params.id === "new";
   const [userPlan, setUserPlan] = useState<string>("FREE");
@@ -133,15 +132,33 @@ export default function ResumeEditorPage() {
       if (saveStatus === "unsaved") {
         await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
       }
-      await new Promise(r => setTimeout(r, 300));
-      const el = (captureRef.current || previewRef.current)?.querySelector('.res-root');
-      if (!el) throw new Error("Preview element not found");
-      const dataUrl = await (toPng as any)(el as HTMLElement, { scale: 2, bgColor: '#ffffff' });
-      const doc = new jsPDF({ format: 'letter', unit: 'in' });
-      const margin = 0.4;
-      const imgW = 8.5 - margin * 2;
-      const imgH = 11 - margin * 2;
-      doc.addImage(dataUrl, 'PNG', margin, margin, imgW, imgH, undefined, 'FAST');
+      const srcEl = captureRef.current?.querySelector('.res-root') as HTMLElement | null;
+      if (!srcEl) throw new Error("Preview element not found");
+      const fixedW = srcEl.offsetWidth;
+      srcEl.style.setProperty('width', fixedW + 'px', 'important');
+      srcEl.style.setProperty('max-width', 'none', 'important');
+      srcEl.style.setProperty('margin', '0', 'important');
+      await document.fonts.ready;
+      await new Promise(r => requestAnimationFrame(r));
+      const dataUrl = await (toPng as any)(srcEl, { scale: 2, bgColor: '#ffffff' });
+      srcEl.style.removeProperty('width');
+      srcEl.style.removeProperty('max-width');
+      srcEl.style.removeProperty('margin');
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
+      const doc = new jsPDF({ format: 'letter', unit: 'pt' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 28.8;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      const x = margin + (maxW - w) / 2;
+      const y = margin + (maxH - h) / 2;
+      doc.addImage(dataUrl, 'PNG', x, y, w, h, undefined, 'FAST');
       doc.save(`${title || 'resume'}.pdf`);
       toast.success("PDF downloaded successfully!");
     } catch (err: any) {
@@ -250,9 +267,14 @@ export default function ResumeEditorPage() {
             <Download className="mr-2 h-4 w-4" /> Save as PDF
           </Button>
         </div>
-        <Card ref={previewRef} className="max-w-[800px] mx-auto min-h-[1000px] p-8 print-card">
+        <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8 print-card">
           <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
         </Card>
+        <div ref={captureRef} className="fixed top-0 left-0 w-[800px] pointer-events-none z-[-1]" style={{ opacity: 0.01 }} aria-hidden="true">
+          <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
+            <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
+          </Card>
+        </div>
       </div>
     );
   }
@@ -419,7 +441,7 @@ export default function ResumeEditorPage() {
         </Button>
       </div>
     </div>
-    <div ref={captureRef} className="fixed left-[-9999px] top-0 w-[800px] z-[-1]" aria-hidden="true">
+    <div ref={captureRef} className="fixed top-0 left-0 w-[800px] pointer-events-none z-[-1]" style={{ opacity: 0.01 }} aria-hidden="true">
       <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
         <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
       </Card>
