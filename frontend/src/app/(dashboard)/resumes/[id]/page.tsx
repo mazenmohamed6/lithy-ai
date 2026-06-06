@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumePreview } from "@/components/resume/ResumePreview";
-import { toSvg } from "dom-to-image-more";
+import { toPng } from "dom-to-image-more";
 import jsPDF from "jspdf";
 
 export default function ResumeEditorPage() {
@@ -31,6 +31,7 @@ export default function ResumeEditorPage() {
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const previewRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
   const isNew = params.id === "new";
   const [userPlan, setUserPlan] = useState<string>("FREE");
   const canAccessPremium = userPlan === "PRO" || userPlan === "PREMIUM" || userPlan === "PRO_ANNUAL" || userPlan === "PREMIUM_ANNUAL";
@@ -132,10 +133,21 @@ export default function ResumeEditorPage() {
       if (saveStatus === "unsaved") {
         await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
       }
-      await api.download(`/resumes/${params.id}/download-pdf`);
+      await new Promise(r => setTimeout(r, 300));
+      const el = (captureRef.current || previewRef.current)?.querySelector('.res-root');
+      if (!el) throw new Error("Preview element not found");
+      const dataUrl = await (toPng as any)(el as HTMLElement, { scale: 2, bgColor: '#ffffff' });
+      const doc = new jsPDF({ format: 'letter', unit: 'in' });
+      const margin = 0.4;
+      const imgW = 8.5 - margin * 2;
+      const imgH = 11 - margin * 2;
+      doc.addImage(dataUrl, 'PNG', margin, margin, imgW, imgH, undefined, 'FAST');
+      doc.save(`${title || 'resume'}.pdf`);
+      toast.success("PDF downloaded successfully!");
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || "PDF generation failed");
+      toast.error(msg || "Client PDF failed, trying server...");
+      try { await api.download(`/resumes/${params.id}/download-pdf`); } catch {}
     }
   }, [title, sections, resume?.templateId, isNew, params.id, saveStatus]);
 
@@ -246,6 +258,7 @@ export default function ResumeEditorPage() {
   }
 
   return (
+    <>
     <div className="flex h-[calc(100vh-4rem)]">
       <div className={cn(
         "w-80 border-r bg-muted/30 p-4 overflow-y-auto space-y-4 transition-all duration-200",
@@ -406,6 +419,12 @@ export default function ResumeEditorPage() {
         </Button>
       </div>
     </div>
+    <div ref={captureRef} className="fixed left-[-9999px] top-0 w-[800px] z-[-1]" aria-hidden="true">
+      <Card className="max-w-[800px] mx-auto min-h-[1000px] p-8">
+        <ResumePreview sections={sections} title={title} templateId={resume?.templateId || "default"} />
+      </Card>
+    </div>
+  </>
   );
 }
 
