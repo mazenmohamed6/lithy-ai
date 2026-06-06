@@ -5,12 +5,15 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import serverlessExpress from '@vendia/serverless-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-const server = express();
+let cachedServer: any;
 
 async function bootstrap() {
+  if (cachedServer) return cachedServer;
+
   const app = express();
   const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app), { rawBody: true });
 
@@ -28,17 +31,19 @@ async function bootstrap() {
   );
 
   await nestApp.init();
-  return app;
+
+  cachedServer = serverlessExpress({ app });
+  return cachedServer;
 }
 
 if (!process.env.VERCEL) {
-  bootstrap().then((app) => {
+  bootstrap().then((handler) => {
     const port = process.env.PORT || 4000;
-    app.listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
+    express().use(handler).listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
   });
 }
 
-export async function handler(req: any, res: any) {
-  const app = await bootstrap();
-  app(req, res);
-}
+export const handler = async (event: any, context: any, callback: any) => {
+  const server = await bootstrap();
+  return server(event, context, callback);
+};
