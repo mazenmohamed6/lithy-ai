@@ -12,16 +12,11 @@ const pdfjsLib = require('pdfjs-dist');
 (globalThis as any).pdfjsWorker = require('pdfjs-dist/build/pdf.worker');
 let chromium: any;
 let puppeteer: any;
-const esmImport = new Function('spec', 'return import(spec)') as (spec: string) => Promise<any>;
 
-async function ensurePuppeteer() {
+function ensurePuppeteer() {
   if (puppeteer) return;
-  const [puppeteerModule, chromiumModule] = await Promise.all([
-    esmImport('puppeteer-core'),
-    esmImport('@sparticuz/chromium'),
-  ]);
-  puppeteer = puppeteerModule.default || puppeteerModule;
-  chromium = chromiumModule.default || chromiumModule;
+  puppeteer = require('puppeteer-core');
+  chromium = require('@sparticuz/chromium');
 }
 
 @Injectable()
@@ -431,7 +426,7 @@ export class ResumesService {
   }
 
   async renderPdfFromHtml(html: string): Promise<Buffer> {
-    await ensurePuppeteer();
+    ensurePuppeteer();
     const doc = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Resume</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -460,7 +455,7 @@ export class ResumesService {
   }
 
   async renderPdfFromUrl(url: string): Promise<Buffer> {
-    await ensurePuppeteer();
+    ensurePuppeteer();
     const browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: { width: 800, height: 1100 },
@@ -483,7 +478,7 @@ export class ResumesService {
   }
 
   private async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
-    await ensurePuppeteer();
+    ensurePuppeteer();
     const html = await this.exportHtml(id, userId);
     const browser = await puppeteer.launch({
       args: chromium.args,
