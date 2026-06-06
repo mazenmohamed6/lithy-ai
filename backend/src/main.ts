@@ -1,26 +1,19 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import express from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-let app: express.Express;
-
 async function bootstrap() {
-  if (app) return app;
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
-  const expressApp = express();
-  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), { rawBody: true });
-
-  nestApp.use(compression());
-  nestApp.use(cookieParser());
-  nestApp.enableCors({ origin: '*', credentials: true });
-  nestApp.useGlobalFilters(new AllExceptionsFilter());
-  nestApp.useGlobalPipes(
+  app.use(compression());
+  app.use(cookieParser());
+  app.enableCors({ origin: '*', credentials: true });
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -29,24 +22,8 @@ async function bootstrap() {
     }),
   );
 
-  await nestApp.init();
-  app = expressApp;
-  return app;
+  const port = process.env.PORT || 4000;
+  await app.listen(port);
+  new Logger('Bootstrap').log(`API running on port ${port}`);
 }
-
-if (!process.env.VERCEL) {
-  bootstrap().then((app) => {
-    const port = process.env.PORT || 4000;
-    app.listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
-  });
-}
-
-export async function handler(req: any, res: any) {
-  try {
-    const server = await bootstrap();
-    server(req, res);
-  } catch (err) {
-    res.statusCode = 500;
-    res.end(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-  }
-}
+bootstrap();
