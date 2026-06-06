@@ -8,6 +8,8 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
+const server = express();
+
 async function bootstrap() {
   const app = express();
   const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app), { rawBody: true });
@@ -21,8 +23,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
+      transformOptions: { enableImplicitConversion: true }),
   );
 
   await nestApp.init();
@@ -36,4 +37,7 @@ if (!process.env.VERCEL) {
   });
 }
 
-export { bootstrap };
+export async function handler(req: any, res: any) {
+  const app = await bootstrap();
+  app(req, res);
+}
