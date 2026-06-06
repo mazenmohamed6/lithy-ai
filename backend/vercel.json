@@ -1,6 +1,6 @@
 {
   "framework": "nestjs",
   "installCommand": "npm install",
-  "buildCommand": "npx prisma@6.19.3 generate && nest build",
+  "buildCommand": "npx prisma@6.19.3 generate && npx nest build",
   "outputDirectory": "dist"
 }
