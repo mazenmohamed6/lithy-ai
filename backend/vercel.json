@@ -1,0 +1,5 @@
+{
+  "framework": "nestjs",
+  "buildCommand": "npx prisma@6.19.3 generate && nest build",
+  "outputDirectory": "dist"
+}
