@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res, BadRequestException, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -9,6 +9,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @ApiTags('Resumes')
 @Controller('api/v1/resumes')
 export class ResumesController {
+  private readonly logger = new Logger(ResumesController.name);
   constructor(private resumesService: ResumesService) {}
 
   @Get()
@@ -86,10 +87,16 @@ export class ResumesController {
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Render resume print page URL to PDF' })
   async renderPdf(@Body() body: { url: string }, @Res() res: Response) {
-    const pdf = await this.resumesService.renderPdfFromUrl(body.url);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
-    res.send(pdf);
+    try {
+      const pdf = await this.resumesService.renderPdfFromUrl(body.url);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
+      res.send(pdf);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`PDF generation failed: ${msg}`, err instanceof Error ? err.stack : '');
+      res.status(500).json({ error: 'PDF generation failed', detail: msg });
+    }
   }
 
   @Post(':id/toggle-public')

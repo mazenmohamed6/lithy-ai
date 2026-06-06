@@ -138,7 +138,8 @@ export default function ResumeEditorPage() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${token}`;
+      if (!token) { toast.error("Not authenticated"); return; }
+      const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${encodeURIComponent(token)}`;
 
       await api.downloadPost('/resumes/render-pdf', { url: printUrl });
       toast.success("PDF downloaded successfully!");
@@ -190,7 +191,10 @@ export default function ResumeEditorPage() {
         doc.addImage(dataUrl, 'PNG', x, y, w, h);
         doc.save(`${title || 'resume'}.pdf`);
         toast.success("PDF downloaded successfully (client fallback)!");
-      } catch {}
+      } catch (fallbackErr) {
+        toast.error("PDF generation failed");
+        console.error("PDF fallback error:", fallbackErr);
+      }
     }
   }, [title, sections, resume?.templateId, isNew, params.id, saveStatus]);
 

@@ -469,13 +469,15 @@ export class ResumesService {
     });
     try {
       const page = await browser.newPage();
-      await page.goto(url, { waitUntil: 'networkidle0' });
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForSelector('.res-root', { timeout: 15000 });
       await page.evaluate(() => document.fonts.ready);
       const pdf = await page.pdf({
         format: 'Letter',
         printBackground: true,
         margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
       });
+      this.logger.log(`PDF generated successfully (${pdf.length} bytes)`);
       return Buffer.from(pdf);
     } finally {
       await browser.close();
