@@ -133,7 +133,8 @@ export class AiService {
         response_format: { type: 'json_object' },
       });
 
-      const content = completion.choices[0].message.content || '';
+      const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const content = parsed.coverLetter || completion.choices[0].message.content || '';
 
       await this.recordUsage(userId, 'COVER_LETTER', completion.usage);
 
@@ -472,6 +473,7 @@ Keep all content practical, concise, and interview-ready.`;
     return `You are an expert cover letter writer. Create a compelling, professional cover letter.
     Tone: ${tone || 'professional'}
     Format: Include date, salutation, body paragraphs, and closing.
-    Keep it concise (3-4 paragraphs). Tailor it to the job description.`;
+    Keep it concise (3-4 paragraphs). Tailor it to the job description.
+    You must respond with a valid JSON object that contains a single key "coverLetter" with the cover letter text as the value.`;
   }
 }
