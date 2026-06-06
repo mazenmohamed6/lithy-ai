@@ -399,6 +399,9 @@ export class ResumesService {
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${resume.title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;500;600;700;800&display=swap" rel="stylesheet">
 <style>${css}</style></head><body>
   <div class="res-root">
     ${headerHtml}
@@ -435,10 +438,11 @@ export class ResumesService {
     try {
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.evaluate(() => document.fonts.ready);
       const pdf = await page.pdf({
         format: 'Letter',
         printBackground: true,
-        margin: { top: '0.4in', bottom: '0.4in', left: '0.5in', right: '0.5in' },
+        margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
       });
       return Buffer.from(pdf);
     } finally {
