@@ -126,54 +126,18 @@ export default function ResumeEditorPage() {
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownloadPdf = useCallback(async () => {
-    const card = previewRef.current as HTMLElement | null;
-    if (!card) { toast.error("Preview not ready"); return; }
-    toast.info("Generating PDF...");
+    if (isNew) { toast.error("Save the resume first before downloading PDF"); return; }
+    toast.info("Saving and generating PDF...");
     try {
-      await document.fonts.ready;
-      const resumeEl = card.querySelector('.res-root') as HTMLElement | null;
-      if (!resumeEl) { toast.error("Preview content not found"); return; }
-      const hadMinH = card.classList.contains('min-h-[1000px]');
-      if (hadMinH) { card.classList.remove('min-h-[1000px]'); }
-
-      const svgData = await toSvg(resumeEl, { bgcolor: '#fff' });
-
-      if (hadMinH) { card.classList.add('min-h-[1000px]'); }
-
-      const svgImg = new Image();
-      svgImg.src = svgData;
-      await svgImg.decode();
-
-      const pixelRatio = 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = svgImg.naturalWidth * pixelRatio;
-      canvas.height = svgImg.naturalHeight * pixelRatio;
-      const ctx = canvas.getContext('2d')!;
-      ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(svgImg, 0, 0, canvas.width, canvas.height);
-
-      const imgData = canvas.toDataURL('image/png');
-
-      const pdf = new jsPDF("p", "mm", "letter");
-      const pageW = 215.9;
-      const pageH = 279.4;
-      const margin = 12.7;
-      const contentW = pageW - 2 * margin;
-      const ratio = contentW / canvas.width;
-      const contentH = canvas.height * ratio;
-      let y = 0;
-      while (y < contentH) {
-        if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, -y + margin, contentW, contentH);
-        y += pageH - 2 * margin;
+      if (saveStatus === "unsaved") {
+        await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
       }
-      pdf.save(`${title || "resume"}.pdf`);
-    } catch (err) {
+      await api.download(`/resumes/${params.id}/download-pdf`);
+    } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("PDF generation failed:", err);
-      toast.error(msg);
+      toast.error(msg || "PDF generation failed");
     }
-  }, [title]);
+  }, [title, sections, resume?.templateId, isNew, params.id, saveStatus]);
 
   const getCompletionScore = () => {
     let filled = 0; let total = 0;
