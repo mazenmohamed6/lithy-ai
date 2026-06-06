@@ -5,17 +5,16 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import express from 'express';
-import serverlessExpress from '@vendia/serverless-express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-let cachedServer: any;
+let app: express.Express;
 
 async function bootstrap() {
-  if (cachedServer) return cachedServer;
+  if (app) return app;
 
-  const app = express();
-  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(app), { rawBody: true });
+  const expressApp = express();
+  const nestApp = await NestFactory.create(AppModule, new ExpressAdapter(expressApp), { rawBody: true });
 
   nestApp.use(compression());
   nestApp.use(cookieParser());
@@ -31,19 +30,23 @@ async function bootstrap() {
   );
 
   await nestApp.init();
-
-  cachedServer = serverlessExpress({ app });
-  return cachedServer;
+  app = expressApp;
+  return app;
 }
 
 if (!process.env.VERCEL) {
-  bootstrap().then((handler) => {
+  bootstrap().then((app) => {
     const port = process.env.PORT || 4000;
-    express().use(handler).listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
+    app.listen(port, () => new Logger('Bootstrap').log(`API running on port ${port}`));
   });
 }
 
-export const handler = async (event: any, context: any, callback: any) => {
-  const server = await bootstrap();
-  return server(event, context, callback);
-};
+export async function handler(req: any, res: any) {
+  try {
+    const server = await bootstrap();
+    server(req, res);
+  } catch (err) {
+    res.statusCode = 500;
+    res.end(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
+}
