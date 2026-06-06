@@ -131,15 +131,14 @@ export default function ResumeEditorPage() {
     toast.info("Generating PDF...");
     try {
       await document.fonts.ready;
+      const resumeEl = card.querySelector('.res-root') as HTMLElement | null;
+      if (!resumeEl) { toast.error("Preview content not found"); return; }
       const hadMinH = card.classList.contains('min-h-[1000px]');
-      const hadPadding = card.classList.contains('p-8');
       if (hadMinH) { card.classList.remove('min-h-[1000px]'); }
-      if (hadPadding) { card.classList.remove('p-8'); }
 
-      const svgData = await toSvg(card, { bgcolor: '#fff' });
+      const svgData = await toSvg(resumeEl, { bgcolor: '#fff' });
 
       if (hadMinH) { card.classList.add('min-h-[1000px]'); }
-      if (hadPadding) { card.classList.add('p-8'); }
 
       const svgImg = new Image();
       svgImg.src = svgData;
@@ -158,20 +157,18 @@ export default function ResumeEditorPage() {
       const pdf = new jsPDF("p", "mm", "letter");
       const pageW = 215.9;
       const pageH = 279.4;
-      const contentW = pageW;
+      const margin = 12.7;
+      const contentW = pageW - 2 * margin;
       const ratio = contentW / canvas.width;
       const contentH = canvas.height * ratio;
       let y = 0;
       while (y < contentH) {
         if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -y, contentW, contentH);
-        y += pageH;
+        pdf.addImage(imgData, "PNG", margin, -y + margin, contentW, contentH);
+        y += pageH - 2 * margin;
       }
       pdf.save(`${title || "resume"}.pdf`);
     } catch (err) {
-      if (card.classList.contains('min-h-[1000px]') === false) {
-        card.classList.add('min-h-[1000px]');
-      }
       const msg = err instanceof Error ? err.message : String(err);
       console.error("PDF generation failed:", err);
       toast.error(msg);
