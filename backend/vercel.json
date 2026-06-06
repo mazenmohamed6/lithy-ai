@@ -3,5 +3,7 @@
   "installCommand": "npm install --include=dev",
   "buildCommand": "npx prisma@6.19.3 generate && npm run build",
   "outputDirectory": "dist",
-  "rewrites": []
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/" }
+  ]
 }
