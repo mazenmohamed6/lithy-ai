@@ -364,7 +364,7 @@ export class ResumesService {
 .res-header-creative{background:linear-gradient(135deg,#f43f5e 0%,#fb7185 50%,#e11d48 100%);color:#fff;padding:28px 32px;border-radius:6px;margin-bottom:20px;text-align:center}
 .res-name{font-size:26px;font-weight:800;color:#fff;margin:0 0 4px;letter-spacing:-.5px}
 .res-contact-bar{font-size:12px;color:rgba(255,255,255,.9);letter-spacing:.3px;margin:0}
-.res-sec-header-creative{display:flex;align-items:center;gap:10px;margin:20px 0 10px;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#18181b}
+.res-sec-header-creative{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
 .res-sec-accent{width:4px;height:18px;background:#f43f5e;border-radius:2px;display:inline-block}
 .res-item{margin-bottom:10px;background:#fafafa;padding:12px 14px;border-radius:6px;border-left:3px solid #f43f5e}
 .res-item-header{display:flex;justify-content:space-between;align-items:baseline}
@@ -402,7 +402,7 @@ export class ResumesService {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;500;600;700;800&display=swap" rel="stylesheet">
-<style>${css}</style></head><body>
+<style>p{margin:0}body{margin:0}${css}</style></head><body>
   <div class="res-root">
     ${headerHtml}
     ${sectionHtml}
