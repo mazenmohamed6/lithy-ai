@@ -125,6 +125,7 @@ export function ResumePreview({ sections, title, templateId }: { sections: any[]
   return (
     <div className={`res-root res-${tid}`}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;500;600;700;800&display=swap');
         .res-root { max-width: 800px; margin: 0 auto; background: #fff; }
 
         /* ===== CLASSIC ===== */

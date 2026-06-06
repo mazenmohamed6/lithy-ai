@@ -135,15 +135,19 @@ export default function ResumeEditorPage() {
       const srcEl = captureRef.current?.querySelector('.res-root') as HTMLElement | null;
       if (!srcEl) throw new Error("Preview element not found");
       const fixedW = srcEl.offsetWidth;
-      srcEl.style.setProperty('width', fixedW + 'px', 'important');
-      srcEl.style.setProperty('max-width', 'none', 'important');
-      srcEl.style.setProperty('margin', '0', 'important');
       await document.fonts.ready;
       await new Promise(r => requestAnimationFrame(r));
-      const dataUrl = await (toPng as any)(srcEl, { scale: 2, bgColor: '#ffffff' });
-      srcEl.style.removeProperty('width');
-      srcEl.style.removeProperty('max-width');
-      srcEl.style.removeProperty('margin');
+      const dataUrl = await (toPng as any)(srcEl, {
+        scale: 2,
+        bgcolor: '#ffffff',
+        width: fixedW,
+        style: {
+          'max-width': 'none',
+          'margin': '0',
+          'border': 'none',
+          'outline': 'none',
+        },
+      });
       const img = new Image();
       img.src = dataUrl;
       await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
