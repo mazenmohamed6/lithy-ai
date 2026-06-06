@@ -7,6 +7,9 @@ import * as path from 'path';
 import mammoth from 'mammoth';
 const PDFDocument = require('pdfkit');
 const pdfjsLib = require('pdfjs-dist');
+// Pre-load worker into global scope so pdfjs finds it via _mainThreadWorkerMessageHandler
+// instead of attempting eval("require")("...pdf.worker.js") which fails on Vercel Lambda (ncc bundling)
+(globalThis as any).pdfjsWorker = require('pdfjs-dist/build/pdf.worker');
 let chromium: any;
 let puppeteer: any;
 
