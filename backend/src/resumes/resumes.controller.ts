@@ -82,6 +82,16 @@ export class ResumesController {
     res.send(pdf);
   }
 
+  @Post('render-pdf')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Render resume print page URL to PDF' })
+  async renderPdf(@Body() body: { url: string }, @Res() res: Response) {
+    const pdf = await this.resumesService.renderPdfFromUrl(body.url);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
+    res.send(pdf);
+  }
+
   @Post(':id/toggle-public')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Toggle resume public visibility' })

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { toSvg } from "dom-to-image-more";
+import jsPDF from "jspdf";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSupabase } from "@/providers/supabase-provider";
@@ -13,8 +15,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Eye, Download, Save, Sparkles, GripVertical, Trash2, ArrowLeft, Menu, CheckCircle2, AlertCircle, Lightbulb, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumePreview } from "@/components/resume/ResumePreview";
-import { toPng } from "dom-to-image-more";
-import jsPDF from "jspdf";
+
 
 export default function ResumeEditorPage() {
   const params = useParams();
@@ -127,48 +128,69 @@ export default function ResumeEditorPage() {
 
   const handleDownloadPdf = useCallback(async () => {
     if (isNew) { toast.error("Save the resume first before downloading PDF"); return; }
-    toast.info("Saving and generating PDF...");
+    toast.info("Saving...");
     try {
       if (saveStatus === "unsaved") {
         await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
       }
-      const srcEl = captureRef.current?.querySelector('.res-root') as HTMLElement | null;
-      if (!srcEl) throw new Error("Preview element not found");
-      const fixedW = srcEl.offsetWidth;
-      await document.fonts.ready;
-      await new Promise(r => requestAnimationFrame(r));
-      const dataUrl = await (toPng as any)(srcEl, {
-        scale: 2,
-        bgcolor: '#ffffff',
-        width: fixedW,
-        style: {
-          'max-width': 'none',
-          'margin': '0',
-          'border': 'none',
-          'outline': 'none',
-        },
-      });
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
-      const doc = new jsPDF({ format: 'letter', unit: 'pt' });
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-      const margin = 28.8;
-      const maxW = pageW - margin * 2;
-      const maxH = pageH - margin * 2;
-      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
-      const w = img.naturalWidth * scale;
-      const h = img.naturalHeight * scale;
-      const x = margin + (maxW - w) / 2;
-      const y = margin + (maxH - h) / 2;
-      doc.addImage(dataUrl, 'PNG', x, y, w, h, undefined, 'FAST');
-      doc.save(`${title || 'resume'}.pdf`);
+      toast.info("Generating PDF...");
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${token}`;
+
+      await api.downloadPost('/resumes/render-pdf', { url: printUrl });
       toast.success("PDF downloaded successfully!");
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || "Client PDF failed, trying server...");
-      try { await api.download(`/resumes/${params.id}/download-pdf`); } catch {}
+      toast.error(msg || "Server PDF failed, trying client...");
+      try {
+        const srcEl2 = captureRef.current?.querySelector('.res-root') as HTMLElement | null;
+        if (!srcEl2) throw new Error("Preview element not found");
+        const fixedW = srcEl2.offsetWidth;
+        await document.fonts.ready;
+        await new Promise(r => requestAnimationFrame(r));
+        const svgUri = await (toSvg as any)(srcEl2, {
+          bgcolor: '#ffffff',
+          width: fixedW,
+          style: { 'max-width': 'none', 'margin': '0', 'border': 'none', 'outline': 'none' },
+          onclone: (clonedRoot: HTMLElement) => {
+            clonedRoot.querySelectorAll('.res-item').forEach((el: Element) => {
+              (el as HTMLElement).style.borderLeft = 'none';
+            });
+          },
+        });
+        const img = new Image();
+        img.src = svgUri;
+        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth * scale;
+        canvas.height = img.naturalHeight * scale;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        const doc = new jsPDF({ format: 'letter', unit: 'pt' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 28.8;
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const cssToPt = 72 / 96;
+        const fitScale = Math.min(maxW / (img.naturalWidth * cssToPt), maxH / (img.naturalHeight * cssToPt));
+        const w = img.naturalWidth * cssToPt * fitScale;
+        const h = img.naturalHeight * cssToPt * fitScale;
+        const x = margin + (maxW - w) / 2;
+        const y = margin + (maxH - h) / 2;
+        doc.addImage(dataUrl, 'PNG', x, y, w, h);
+        doc.save(`${title || 'resume'}.pdf`);
+        toast.success("PDF downloaded successfully (client fallback)!");
+      } catch {}
     }
   }, [title, sections, resume?.templateId, isNew, params.id, saveStatus]);
 

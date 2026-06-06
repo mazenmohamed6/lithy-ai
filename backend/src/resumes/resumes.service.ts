@@ -12,6 +12,17 @@ const pdfjsLib = require('pdfjs-dist');
 (globalThis as any).pdfjsWorker = require('pdfjs-dist/build/pdf.worker');
 let chromium: any;
 let puppeteer: any;
+const esmImport = new Function('spec', 'return import(spec)') as (spec: string) => Promise<any>;
+
+async function ensurePuppeteer() {
+  if (puppeteer) return;
+  const [puppeteerModule, chromiumModule] = await Promise.all([
+    esmImport('puppeteer-core'),
+    esmImport('@sparticuz/chromium'),
+  ]);
+  puppeteer = puppeteerModule.default || puppeteerModule;
+  chromium = chromiumModule.default || chromiumModule;
+}
 
 @Injectable()
 export class ResumesService {
@@ -419,15 +430,60 @@ export class ResumesService {
     }
   }
 
-  private async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
-    if (!puppeteer) {
-      const [puppeteerModule, chromiumModule] = await Promise.all([
-        import('puppeteer-core') as any,
-        import('@sparticuz/chromium') as any,
-      ]);
-      puppeteer = puppeteerModule.default || puppeteerModule;
-      chromium = chromiumModule.default || chromiumModule;
+  async renderPdfFromHtml(html: string): Promise<Buffer> {
+    await ensurePuppeteer();
+    const doc = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Resume</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;500;600;700;800&display=swap" rel="stylesheet">
+</head><body>${html}</body></html>`;
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 800, height: 1100 },
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(doc, { waitUntil: 'networkidle0' });
+      await page.evaluate(() => document.fonts.ready);
+      const pdf = await page.pdf({
+        format: 'Letter',
+        printBackground: true,
+        margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
+      });
+      return Buffer.from(pdf);
+    } finally {
+      await browser.close();
     }
+  }
+
+  async renderPdfFromUrl(url: string): Promise<Buffer> {
+    await ensurePuppeteer();
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: { width: 800, height: 1100 },
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+    try {
+      const page = await browser.newPage();
+      await page.goto(url, { waitUntil: 'networkidle0' });
+      await page.evaluate(() => document.fonts.ready);
+      const pdf = await page.pdf({
+        format: 'Letter',
+        printBackground: true,
+        margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
+      });
+      return Buffer.from(pdf);
+    } finally {
+      await browser.close();
+    }
+  }
+
+  private async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
+    await ensurePuppeteer();
     const html = await this.exportHtml(id, userId);
     const browser = await puppeteer.launch({
       args: chromium.args,

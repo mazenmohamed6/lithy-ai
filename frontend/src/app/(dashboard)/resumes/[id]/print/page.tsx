@@ -1,58 +1,53 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { api } from "@/lib/api";
-import { ResumePreview } from "@/components/resume/ResumePreview";
-import { Loader2 } from "lucide-react";
+import { useParams, useSearchParams } from "next/navigation";
+import { ResumeTemplate } from "@/components/resume/ResumeTemplate";
+import { API_BASE_URL } from "@/lib/constants";
 
-export default function ResumePrintPage() {
+export default function PrintPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [resume, setResume] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    api.get(`/resumes/${params.id}`)
-      .then((data) => {
-        setResume(data);
-        setLoading(false);
-        setTimeout(() => window.print(), 300);
-      })
-      .catch(() => setLoading(false));
-  }, [params.id]);
+    const token = searchParams.get("token");
+    const id = params.id as string;
+    if (!token) { setError("Missing auth token"); return; }
+    if (!id) { setError("Missing resume ID"); return; }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    fetch(`${API_BASE_URL}/resumes/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`API error: ${r.status}`);
+        return r.json();
+      })
+      .then(setResume)
+      .catch((e) => setError(e.message));
+  }, [params.id, searchParams]);
+
+  if (error) {
+    return <div className="text-red-500 p-4 text-center">{error}</div>;
   }
 
   if (!resume) {
-    return <div className="flex items-center justify-center min-h-screen text-muted-foreground">Resume not found</div>;
+    return <div className="p-4 text-center text-muted-foreground">Loading resume...</div>;
   }
 
   return (
-    <div className="print-page">
+    <>
       <style>{`
-        body { margin: 0; padding: 32px; background: white; }
-        .print-page { max-width: 800px; margin: 0 auto; }
-        @media print {
-          body { padding: 0; }
-          .print-page { max-width: 100%; }
-          @page { margin: 0.75in; size: letter; }
-        }
-        .no-print { display: block; text-align: center; margin-bottom: 16px; }
-        @media print { .no-print { display: none; } }
+        header, footer, [data-sonner-toaster] { display: none !important; }
+        body { margin: 0; padding: 0 !important; }
+        main { padding: 0 !important; max-width: none !important; }
       `}</style>
-      <div className="no-print">
-        <p style={{ color: '#666', fontSize: 14, fontFamily: 'system-ui' }}>
-          Use <strong>Ctrl+P</strong> (or <strong>Cmd+P</strong>) to save as PDF.
-          Select &ldquo;Save as PDF&rdquo; as the destination.
-        </p>
-      </div>
-      <ResumePreview sections={resume.sections} title={resume.title} templateId={resume.templateId} />
-    </div>
+      <ResumeTemplate
+        sections={resume.sections}
+        title={resume.title}
+        templateId={resume.templateId}
+      />
+    </>
   );
 }

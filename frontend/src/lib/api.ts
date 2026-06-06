@@ -136,6 +136,33 @@ class ApiClient {
     URL.revokeObjectURL(url);
   }
 
+  async downloadPost(path: string, body: any) {
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    const response = await fetch(`${this.baseUrl}${path}`, { method: "POST", headers, body: JSON.stringify(body), signal: controller.signal }).finally(() => clearTimeout(timeout));
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => null);
+      throw new Error(getFriendlyErrorMessage(response.status, errBody));
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?(.+?)"?$/);
+    const filename = match ? match[1] : "resume.pdf";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async upload<T = any>(path: string, formData: FormData): Promise<T> {
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
