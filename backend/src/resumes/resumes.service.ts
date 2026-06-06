@@ -15,6 +15,11 @@ let puppeteer: any;
 
 function ensurePuppeteer() {
   if (puppeteer) return;
+  // @sparticuz/chromium detects Lambda via AWS_EXECUTION_ENV to set LD_LIBRARY_PATH
+  // and extract shared libraries. Vercel doesn't set this, so we set it ourselves.
+  if (!process.env.AWS_EXECUTION_ENV) {
+    process.env.AWS_EXECUTION_ENV = 'AWS_Lambda_nodejs20.x';
+  }
   puppeteer = require('puppeteer-core');
   chromium = require('@sparticuz/chromium');
 }
