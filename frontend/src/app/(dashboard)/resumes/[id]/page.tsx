@@ -151,7 +151,7 @@ export default function ResumeEditorPage() {
       console.error('[PDF] Server PDF generation failed:', msg, err);
       toast.error(`Server PDF failed: ${msg}`);
 
-      const fallbackEnabled = process.env.NEXT_PUBLIC_PDF_FALLBACK_ENABLED !== 'false';
+      const fallbackEnabled = false;
       if (fallbackEnabled) {
         console.log('[PDF] Fallback enabled - trying canvas export');
         try {
