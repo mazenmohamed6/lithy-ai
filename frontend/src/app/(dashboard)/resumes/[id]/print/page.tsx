@@ -13,38 +13,46 @@ export default function PrintPage() {
   const [printState, setPrintState] = useState<'idle' | 'loading' | 'printing' | 'done'>('idle');
 
   useEffect(() => {
-    const token = searchParams.get("token");
     const id = params.id as string;
-    console.log(`[PRINT] Page loaded, token=${token ? 'present' : 'missing'}, id=${id}`);
-    if (!token) { setError("Missing auth token"); return; }
     if (!id) { setError("Missing resume ID"); return; }
-
-    const url = `${API_BASE_URL}/resumes/${id}`;
-    console.log(`[PRINT] Fetching resume from ${url}`);
     setPrintState('loading');
-    fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (r) => {
-        console.log('[PRINT] response status:', r.status);
-        console.log('[PRINT] response headers:', [...r.headers.entries()].map(([k,v])=>`${k}:${v}`).join(', '));
-        const text = await r.text();
-        console.log('[PRINT] raw response body length:', text.length);
-        console.log('[PRINT] raw response body:', text.substring(0, 500));
-        if (!r.ok) {
-          throw new Error(`API error ${r.status}: ${text.substring(0, 200)}`);
-        }
-        if (!text) {
-          throw new Error(`Empty API response (status ${r.status})`);
-        }
-        const data = JSON.parse(text);
-        console.log('[PRINT] Resume loaded, templateId=', data.templateId, 'sections=', data.sections?.length);
-        setResume(data);
-      })
-      .catch((e) => {
-        console.error('[PRINT] Fetch error:', e.message);
-        setError(e.message);
+
+    (async () => {
+      let token = searchParams.get("token");
+      if (!token) {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token;
+      }
+      console.log(`[PRINT] Page loaded, id=${id}, token=${token ? 'present' : 'missing'}`);
+
+      if (!token) { setError("Not authenticated"); return; }
+
+      const url = `${API_BASE_URL}/resumes/${id}`;
+      console.log(`[PRINT] Fetching resume from ${url}`);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log('[PRINT] response status:', response.status);
+      console.log('[PRINT] response headers:', [...response.headers.entries()].map(([k,v])=>`${k}:${v}`).join(', '));
+      const text = await response.text();
+      console.log('[PRINT] raw response body length:', text.length);
+      console.log('[PRINT] raw response body:', text.substring(0, 500));
+
+      if (!response.ok) {
+        setError(`API error ${response.status}: ${text.substring(0, 200)}`);
+        return;
+      }
+      if (!text) {
+        setError(`Empty API response (status ${response.status})`);
+        return;
+      }
+      const data = JSON.parse(text);
+      console.log('[PRINT] Resume loaded, templateId=', data.templateId, 'sections=', data.sections?.length);
+      setResume(data);
+    })();
   }, [params.id, searchParams]);
 
   useEffect(() => {
