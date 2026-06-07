@@ -95,7 +95,7 @@ export class ResumesController {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`PDF generation failed: ${msg}`, err instanceof Error ? err.stack : '');
-      res.status(500).json({ error: 'PDF generation failed', detail: msg });
+      res.status(500).json({ message: msg });
     }
   }
 
