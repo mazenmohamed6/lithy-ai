@@ -29,7 +29,7 @@ export default function PrintPage() {
         return r.json();
       })
       .then((data) => {
-        console.log('[PRINT] Resume loaded, templateId=', data.templateId);
+        console.log('[PRINT] Resume loaded, templateId=', data.templateId, 'sections=', data.sections?.length);
         setResume(data);
       })
       .catch((e) => {
@@ -49,12 +49,16 @@ export default function PrintPage() {
         await new Promise(r => setTimeout(r, 50));
         if (cancelled) return;
       }
+      const rootEl = document.querySelector('.res-root')!;
       console.log('[PRINT] ResumeTemplate rendered (.res-root found)');
+      console.log('[PRINT] .res-root children:', rootEl.children.length);
+      console.log('[PRINT] .res-root innerHTML length:', rootEl.innerHTML.length);
 
       await document.fonts.ready;
       console.log('[PRINT] Fonts ready');
 
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => requestAnimationFrame(r));
+      await new Promise(r => requestAnimationFrame(r));
       if (cancelled) return;
 
       console.log('[PRINT] Calling window.print()');
