@@ -35,7 +35,7 @@ export default function PrintPage() {
           throw new Error(`API error ${r.status}: ${text.substring(0, 200)}`);
         }
         if (!text) {
-          throw new Error('Empty API response');
+          throw new Error(`Empty API response (status ${r.status})`);
         }
         const data = JSON.parse(text);
         console.log('[PRINT] Resume loaded, templateId=', data.templateId, 'sections=', data.sections?.length);
