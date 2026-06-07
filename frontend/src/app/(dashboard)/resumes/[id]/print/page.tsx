@@ -20,12 +20,12 @@ export default function PrintPage() {
         (document.querySelector('[data-sonner-toaster]') as HTMLElement).style.display = "none";
       }
 
-      let token = searchParams.get("token");
+      let token: string | null = searchParams.get("token");
       if (!token) {
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
-        token = session?.access_token;
+        token = session?.access_token ?? null;
       }
 
       if (!token) { setError("Not authenticated"); return; }
