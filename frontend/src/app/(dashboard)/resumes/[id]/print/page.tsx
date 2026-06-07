@@ -25,12 +25,19 @@ export default function PrintPage() {
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => {
-        if (!r.ok) throw new Error(`API error: ${r.status}`);
-        console.log('[PRINT] Fetch OK, parsing JSON...');
-        return r.json();
-      })
-      .then((data) => {
+      .then(async (r) => {
+        console.log('[PRINT] response status:', r.status);
+        console.log('[PRINT] response headers:', [...r.headers.entries()].map(([k,v])=>`${k}:${v}`).join(', '));
+        const text = await r.text();
+        console.log('[PRINT] raw response body length:', text.length);
+        console.log('[PRINT] raw response body:', text.substring(0, 500));
+        if (!r.ok) {
+          throw new Error(`API error ${r.status}: ${text.substring(0, 200)}`);
+        }
+        if (!text) {
+          throw new Error('Empty API response');
+        }
+        const data = JSON.parse(text);
         console.log('[PRINT] Resume loaded, templateId=', data.templateId, 'sections=', data.sections?.length);
         setResume(data);
       })

@@ -143,7 +143,7 @@ export default function ResumeEditorPage() {
       const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${encodeURIComponent(token)}`;
       console.log('[PDF] opening print page:', printUrl);
 
-      if (!window.open(printUrl, 'resume-print')) {
+      if (!window.open(printUrl, `resume-print-${Date.now()}`)) {
         window.location.href = printUrl;
       }
       toast.success("Print page opened");
