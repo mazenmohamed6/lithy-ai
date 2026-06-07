@@ -34,7 +34,7 @@ async function main() {
       description: 'Professional resume building with AI power',
       priceEgp: 75,
       interval: 'month',
-      stripePriceId: 'price_1Td4zDEqFdud3sNVS1TdRtpa',
+      stripePriceId: 'price_1TeLrXEqFdud3sNVuVvVEiAZ',
       features: JSON.stringify({
         maxResumes: 10,
         aiGenerations: 10,
@@ -56,7 +56,7 @@ async function main() {
       description: 'Professional resume building - annual (20% off)',
       priceEgp: 720,
       interval: 'year',
-      stripePriceId: 'price_1Te5TaEqFdud3sNVAbKKpNsv',
+      stripePriceId: 'price_1TeLrXEqFdud3sNVZOJSZW55',
       features: JSON.stringify({
         maxResumes: 10,
         aiGenerations: 10,
@@ -78,7 +78,7 @@ async function main() {
       description: 'Unlimited AI-powered career tools',
       priceEgp: 150,
       interval: 'month',
-      stripePriceId: 'price_1TdHTKEqFdud3sNVeqXyBbAo',
+      stripePriceId: 'price_1TeLrYEqFdud3sNVWsTu2Paw',
       features: JSON.stringify({
         maxResumes: -1,
         aiGenerations: -1,
@@ -100,7 +100,7 @@ async function main() {
       description: 'Unlimited career tools - annual (20% off)',
       priceEgp: 1440,
       interval: 'year',
-      stripePriceId: 'price_1TdKWZEqFdud3sNVIWs7rTT9',
+      stripePriceId: 'price_1TeLrYEqFdud3sNVZVgey8Qr',
       features: JSON.stringify({
         maxResumes: -1,
         aiGenerations: -1,
@@ -133,7 +133,7 @@ async function main() {
       type: AddonType.AI_GENERATION,
       credits: 10,
       priceEgp: 30,
-      stripePriceId: 'price_1TdHV6EqFdud3sNV34MRornK',
+      stripePriceId: 'price_1TeLrZEqFdud3sNV0ATOVwKU',
     },
   ];
 

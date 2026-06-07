@@ -114,7 +114,9 @@ export class ResumesService {
     const resumeCount = await this.prisma.resume.count({ where: { userId: { in: ledgerUserIds } } });
 
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
-    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
+    const isActive = subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING';
+    const effectivePlanId = isActive ? (subscription?.planId || 'plan_free') : 'plan_free';
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: effectivePlanId } });
 
     const features = (plan?.features || '{}') as any;
     const parsed = typeof features === 'string' ? JSON.parse(features) : features;
@@ -157,7 +159,9 @@ export class ResumesService {
     // Enforce template plan restrictions
     if (data.templateId && this.premiumTemplates.includes(data.templateId)) {
       const sub = await this.prisma.userSubscription.findUnique({ where: { userId } });
-      const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: sub?.planId || 'plan_free' } });
+      const isActive = sub?.status === 'ACTIVE' || sub?.status === 'TRIALING';
+      const effectivePlanId = isActive ? (sub?.planId || 'plan_free') : 'plan_free';
+      const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: effectivePlanId } });
       const features = (plan?.features || '{}') as any;
       const parsed = typeof features === 'string' ? JSON.parse(features) : features;
       if (parsed.templates !== 'premium') {
@@ -247,7 +251,9 @@ export class ResumesService {
     const ledgerUserIds = await this.getLedgerUserIds(userId);
     const resumeCount = await this.prisma.resume.count({ where: { userId: { in: ledgerUserIds } } });
     const subscription = await this.prisma.userSubscription.findUnique({ where: { userId } });
-    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: subscription?.planId || 'plan_free' } });
+    const isActive = subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING';
+    const effectivePlanId = isActive ? (subscription?.planId || 'plan_free') : 'plan_free';
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { id: effectivePlanId } });
     const features = (plan?.features || '{}') as any;
     const parsed = typeof features === 'string' ? JSON.parse(features) : features;
     const maxResumes = parsed.maxResumes ?? 3;
@@ -308,7 +314,13 @@ export class ResumesService {
       .filter((s) => s.id !== 'contact' && s.enabled !== false)
       .map(secHtml).join('');
 
-    const items = [contact.email, contact.phone, contact.location].filter(Boolean);
+    const items = [
+      contact.email,
+      contact.phone,
+      contact.location,
+      contact.linkedin ? (contact.linkedin as string).replace(/^https?:\/\//, '') : null,
+      contact.website ? (contact.website as string).replace(/^https?:\/\//, '') : null,
+    ].filter(Boolean);
 
     let css = '';
     let headerHtml = '';
@@ -462,56 +474,122 @@ export class ResumesService {
   async renderPdfFromUrl(url: string): Promise<Buffer> {
     this.logger.log('[PDF] renderPdfFromUrl called');
     ensurePuppeteer();
-    this.logger.log('[PDF] ensurePuppeteer OK');
 
-    let browser;
+    let browser: any;
+    let page: any;
     try {
-      this.logger.log('[PDF] resolving chromium executablePath...');
+      this.logger.log('[PDF] launching browser');
       const execPath = await chromium.executablePath();
-      this.logger.log(`[PDF] executablePath = ${execPath}`);
-
-      this.logger.log('[PDF] launching puppeteer...');
+      this.logger.log(`[PDF] chromium executablePath: ${execPath}`);
       browser = await puppeteer.launch({
         args: chromium.args,
-        defaultViewport: { width: 800, height: 1100 },
+        defaultViewport: { width: 1200, height: 800 },
         executablePath: execPath,
         headless: true,
       });
-      this.logger.log('[PDF] puppeteer launch OK');
+      this.logger.log('[PDF] browser launched');
 
-      const page = await browser.newPage();
+      page = await browser.newPage();
+      this.logger.log('[PDF] page created');
 
-      this.logger.log(`[PDF] navigating to print URL...`);
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
-      this.logger.log('[PDF] page.goto OK (domcontentloaded)');
-
-      this.logger.log('[PDF] waiting for .res-root selector...');
-      await page.waitForSelector('.res-root', { timeout: 15000 });
-      this.logger.log('[PDF] .res-root found - print page rendered');
-
-      const fontsReady = await page.evaluate(() => document.fonts.ready);
-      this.logger.log('[PDF] fonts ready');
-
-      this.logger.log('[PDF] calling page.pdf()...');
-      const pdf = await page.pdf({
-        format: 'Letter',
-        printBackground: true,
-        margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
+      page.on('console', (msg: any) => {
+        this.logger.log(`[PDF:page:console] ${msg.text()}`);
       });
-      this.logger.log(`[PDF] page.pdf() OK - ${pdf.length} bytes`);
-      return Buffer.from(pdf);
+      page.on('pageerror', (err: any) => {
+        this.logger.log(`[PDF:page:error] ${err.message}`);
+      });
+      page.on('requestfailed', (req: any) => {
+        this.logger.log(`[PDF:page:requestfailed] ${req.url()} - ${req.failure()?.errorText}`);
+      });
+
+      this.logger.log(`[PDF] navigating to: ${url}`);
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        this.logger.log('[PDF] navigation complete');
+      } catch (err) {
+        this.logger.error(`[PDF] navigation FAILED`);
+        this.logger.error(`[PDF]   type: ${err?.constructor?.name}`);
+        this.logger.error(`[PDF]   message: ${err?.message}`);
+        this.logger.error(`[PDF]   stack: ${err?.stack?.substring(0, 500)}`);
+        throw err;
+      }
+
+      try {
+        const html = await page.content();
+        this.logger.log(`[PDF] page.content() length: ${html.length}`);
+        this.logger.log(`[PDF] page.content() first 3000 chars: ${html.substring(0, 3000)}`);
+      } catch (err) {
+        this.logger.error(`[PDF] failed to get page.content(): ${err.message}`);
+      }
+
+      try {
+        await page.screenshot({ path: '/tmp/debug.png', fullPage: true });
+        this.logger.log('[PDF] screenshot saved to /tmp/debug.png');
+      } catch (err) {
+        this.logger.error(`[PDF] failed to save screenshot: ${err.message}`);
+      }
+
+      this.logger.log('[PDF] waiting for .res-root');
+      try {
+        await page.waitForSelector('.res-root', { timeout: 30000 });
+        this.logger.log('[PDF] .res-root found');
+      } catch (err) {
+        this.logger.error(`[PDF] .res-root NOT found`);
+        this.logger.error(`[PDF]   type: ${err?.constructor?.name}`);
+        this.logger.error(`[PDF]   message: ${err?.message}`);
+        this.logger.error(`[PDF]   stack: ${err?.stack?.substring(0, 500)}`);
+        try {
+          const bodyText = await page.evaluate(() => document.body?.innerText ?? 'no body');
+          this.logger.log(`[PDF] body text: ${bodyText.substring(0, 1000)}`);
+        } catch {}
+        throw err;
+      }
+
+      this.logger.log('[PDF] waiting for fonts');
+      try {
+        await page.evaluate(() => document.fonts.ready);
+        this.logger.log('[PDF] fonts ready');
+      } catch (err) {
+        this.logger.error(`[PDF] fonts.ready failed: ${err.message}`);
+      }
+
+      this.logger.log('[PDF] generating pdf');
+      try {
+        const pdf = await page.pdf({
+          format: 'Letter',
+          printBackground: true,
+          margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
+        });
+        this.logger.log(`[PDF] pdf generated (${pdf.length} bytes)`);
+        return Buffer.from(pdf);
+      } catch (err) {
+        this.logger.error(`[PDF] pdf generation FAILED`);
+        this.logger.error(`[PDF]   type: ${err?.constructor?.name}`);
+        this.logger.error(`[PDF]   message: ${err?.message}`);
+        this.logger.error(`[PDF]   stack: ${err?.stack?.substring(0, 500)}`);
+        throw err;
+      }
     } catch (err) {
-      this.logger.error(`[PDF] FAILED: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.error(`[PDF] renderPdfFromUrl FAILED`);
+      this.logger.error(`[PDF]   type: ${err?.constructor?.name}`);
+      this.logger.error(`[PDF]   message: ${err?.message}`);
+      this.logger.error(`[PDF]   stack: ${err?.stack}`);
       throw err;
     } finally {
       if (browser) {
-        await browser.close();
+        this.logger.log('[PDF] closing browser');
+        await browser.close().catch((err: any) => {
+          this.logger.error(`[PDF] browser close error: ${err.message}`);
+        });
         this.logger.log('[PDF] browser closed');
       }
     }
   }
 
-  private async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
+  async exportPdfWithChrome(id: string, userId: string): Promise<Buffer> {
+    this.logger.log(`[PDF] exportPdfWithChrome id=${id} userId=${userId}`);
+    if (!id) throw new BadRequestException('Resume ID is missing');
+    if (!userId) throw new BadRequestException('User ID is missing');
     ensurePuppeteer();
     const html = await this.exportHtml(id, userId);
     const browser = await puppeteer.launch({
@@ -550,10 +628,11 @@ export class ResumesService {
     const pw = doc.page.width - ml - doc.page.margins.right;
 
     /*** HEADER ***/
+    const fmtLink = (v: string) => v ? v.replace(/^https?:\/\//, '') : '';
     if (templateId === 'classic' || templateId === 'default') {
       doc.fontSize(24).font('Helvetica-Bold').fillColor('#1a1a1a')
         .text(contact.fullName || resume.title, ml, doc.y, { align: 'center' });
-      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  |  ');
       if (cl) doc.fontSize(10).font('Helvetica').fillColor('#555').text(cl, { align: 'center' });
       doc.moveDown(0.3);
       const y1 = doc.y; doc.moveTo(ml, y1).lineTo(ml + pw, y1).strokeColor('#ddd').lineWidth(1).stroke();
@@ -565,6 +644,8 @@ export class ResumesService {
       if (contact.email) contactGrid.push(contact.email);
       if (contact.phone) contactGrid.push(contact.phone);
       if (contact.location) contactGrid.push(contact.location);
+      if (contact.linkedin) contactGrid.push(fmtLink(contact.linkedin));
+      if (contact.website) contactGrid.push(fmtLink(contact.website));
       if (contactGrid.length) {
         doc.fontSize(9).font('Helvetica').fillColor('#475569');
         const startY = doc.y + 4;
@@ -577,7 +658,7 @@ export class ResumesService {
     } else if (templateId === 'minimal') {
       doc.fontSize(28).font('Helvetica').fillColor('#111')
         .text(contact.fullName || resume.title, ml, doc.y, { align: 'center' });
-      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  /  ');
       if (cl) doc.fontSize(9.5).font('Helvetica').fillColor('#888').text(cl, { align: 'center' });
       doc.moveDown(0.3);
       const y3 = doc.y; doc.moveTo(ml + 60, y3).lineTo(ml + pw - 60, y3).strokeColor('#ccc').lineWidth(0.5).stroke();
@@ -592,14 +673,14 @@ export class ResumesService {
       doc.moveDown(0.15);
       doc.moveTo(ml + 100, doc.y).lineTo(ml + pw - 100, doc.y).strokeColor('#1a365d').lineWidth(1).stroke();
       doc.moveDown(0.3);
-      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  |  ');
       if (cl) doc.fontSize(9.5).font('Helvetica').fillColor('#2d3748').text(cl, { align: 'center' });
       doc.moveDown(0.5);
     } else if (templateId === 'creative') {
       doc.rect(0, 0, doc.page.width, 95).fillColor('#667eea').fill();
       doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold')
         .text(contact.fullName || resume.title, ml, 28, { align: 'center' });
-      const cl = [contact.email, contact.phone, contact.location].filter(Boolean).join('  |  ');
+      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  ·  ');
       if (cl) doc.fontSize(10).font('Helvetica').fillColor('#ffffff').text(cl, ml, 60, { align: 'center' });
       doc.y = 110;
     }

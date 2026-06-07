@@ -6,7 +6,13 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
 
   const contactBlock = () => {
     const name = contact.fullName || "Your Name";
-    const items = [contact.email, contact.phone, contact.location].filter(Boolean);
+    const items = [
+      contact.email,
+      contact.phone,
+      contact.location,
+      contact.linkedin ? contact.linkedin.replace(/^https?:\/\//, '') : null,
+      contact.website ? contact.website.replace(/^https?:\/\//, '') : null,
+    ].filter(Boolean);
 
     if (tid === "modern") {
       return (

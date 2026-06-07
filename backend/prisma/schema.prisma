@@ -333,6 +333,22 @@ model AIGeneration {
   @@map("ai_generations")
 }
 
+/// Tracks processed Stripe webhook events with status lifecycle.
+/// Stripe delivers webhooks at-least-once; status ensures exactly-once semantics
+/// while allowing recovery from mid-processing crashes.
+/// Status flow: RECEIVED → PROCESSING → COMPLETED
+///              RECEIVED → PROCESSING → FAILED (retryable)
+model WebhookEvent {
+  id        String   @id // Stripe event.id (globally unique)
+  type      String
+  status    String   @default("RECEIVED") // RECEIVED | PROCESSING | COMPLETED | FAILED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("webhook_events")
+}
+
 model Session {
   id        String   @id @default(cuid())
   userId    String

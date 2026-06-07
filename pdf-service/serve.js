@@ -1,62 +1,90 @@
-// One script: starts Express server + localtunnel, stays alive
 const express = require("express");
 const { chromium } = require("playwright");
 const localtunnel = require("localtunnel");
-const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 
-const PORT = parseInt(process.env.PORT, 10) || 3001;
+const PORT = 3001;
+const urlFile = path.join(__dirname, ".tunnel-url");
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+app.use(express.json({ limit: "10mb" }));
+
+app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
 app.post("/render-pdf", async (req, res) => {
   const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'Missing "url"' });
-
-  const id = `pdf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-  console.log(`[${id}] Render PDF: ${url}`);
-
-  const browser = await chromium.launch({ headless: true });
+  console.log("[render-pdf] url=" + url);
+  if (!url) {
+    console.log("[render-pdf] missing url");
+    return res.status(400).json({ error: "url is required" });
+  }
+  let browser;
   try {
-    const page = await browser.newPage({ viewport: { width: 800, height: 1100 } });
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForSelector(".res-root", { timeout: 15000 });
-    await page.evaluate(() => document.fonts.ready);
-    const pdf = await page.pdf({
-      format: "Letter",
-      printBackground: true,
-      margin: { top: "0.4in", bottom: "0.4in", left: "0.4in", right: "0.4in" },
+    console.log("[render-pdf] launching browser...");
+    browser = await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
     });
-    console.log(`[${id}] PDF generated (${pdf.length} bytes)`);
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", 'attachment; filename="resume.pdf"');
-    res.send(pdf);
+    const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+    const page = await context.newPage();
+    console.log("[render-pdf] navigating to " + url);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
+    console.log("[render-pdf] waiting for .res-root...");
+    await page.waitForSelector(".res-root", { timeout: 10000 }).catch(() => console.log("[render-pdf] .res-root not found, continuing"));
+    await page.evaluate(() => document.fonts.ready).catch(() => {});
+    console.log("[render-pdf] generating PDF...");
+    const pdf = await page.pdf({ format: "A4", printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+    console.log("[render-pdf] PDF generated: " + pdf.length + " bytes");
+    res.set({ "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="resume.pdf"' });
+    res.send(Buffer.from(pdf));
   } catch (err) {
-    console.error(`[${id}] Error: ${err.message}`);
-    res.status(500).json({ error: "PDF generation failed", message: err.message });
+    console.log("[render-pdf] error: " + (err && err.message ? err.message : String(err)));
+    res.status(500).json({ error: err && err.message ? err.message : String(err) });
   } finally {
-    await browser.close();
+    if (browser) try { await browser.close(); } catch {}
   }
 });
 
-async function main() {
-  // Start Express
-  await new Promise((resolve) => app.listen(PORT, resolve));
-  console.log(`PDF Service on http://localhost:${PORT}`);
+// Start HTTP server
+app.listen(PORT, () => console.log("Server on :" + PORT));
 
-  // Start localtunnel
-  const tunnel = await localtunnel({ port: PORT });
-  console.log(`\n  Tunnel URL: ${tunnel.url}\n`);
-  require("fs").writeFileSync(__dirname + "/.tunnel-url", tunnel.url);
-  tunnel.on("close", () => { console.log("Tunnel closed"); process.exit(1); });
+// Start localtunnel with auto-reconnect
+let tunnel = null;
+let tunnelUrl = null;
 
-  // Graceful shutdown
-  process.on("SIGINT", () => { tunnel.close(); process.exit(0); });
-  process.on("SIGTERM", () => { tunnel.close(); process.exit(0); });
+async function startTunnel() {
+  if (tunnel) { try { tunnel.close(); } catch {} tunnel = null; }
+  try {
+    tunnel = await localtunnel({ port: PORT });
+    tunnelUrl = tunnel.url;
+    fs.writeFileSync(urlFile, tunnelUrl);
+    console.log("TUNNEL_URL=" + tunnelUrl);
+    tunnel.on("close", () => {
+      console.log("Tunnel closed, restarting...");
+      tunnelUrl = null;
+      if (fs.existsSync(urlFile)) fs.unlinkSync(urlFile);
+      setTimeout(startTunnel, 2000);
+    });
+    tunnel.on("error", (e) => console.log("Tunnel error: " + e.message));
+  } catch (e) {
+    console.log("Tunnel failed, retrying in 5s: " + e.message);
+    setTimeout(startTunnel, 5000);
+  }
 }
 
-main().catch((e) => { console.error("Fatal:", e); process.exit(1); });
+// Monitor tunnel health every 30s
+setInterval(() => {
+  if (!tunnel) return;
+  fetch(tunnelUrl + "/health").catch(() => {
+    console.log("Health check failed, restarting tunnel...");
+    startTunnel();
+  });
+}, 30000);
+
+startTunnel();
+
+process.on("uncaughtException", (e) => console.log("UNCAUGHT: " + (e && e.message ? e.message : e)));
+process.on("unhandledRejection", (e) => console.log("UNHANDLED: " + (e && e.message ? e.message : e)));
+
+console.log("serve.js started");

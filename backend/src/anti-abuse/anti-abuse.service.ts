@@ -521,7 +521,9 @@ export class AntiAbuseService {
       where: { userId },
       include: { plan: true },
     });
-    const features = (sub?.plan?.features || '{}') as any;
+    const isActive = sub?.status === 'ACTIVE' || sub?.status === 'TRIALING';
+    const effectivePlan = isActive ? sub.plan : null;
+    const features = (effectivePlan?.features || '{}') as any;
     const parsed = typeof features === 'string' ? JSON.parse(features) : features;
     return {
       aiGenerations: parsed.aiGenerations ?? 10,

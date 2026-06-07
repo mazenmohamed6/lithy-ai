@@ -115,24 +115,74 @@ export class PaymentsService {
       throw new BadRequestException('Invalid webhook signature');
     }
 
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-        break;
-      case 'invoice.paid':
-        await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
-        break;
-      case 'invoice.payment_failed':
-        await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
-        break;
-      case 'customer.subscription.deleted':
-        await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-        break;
-      case 'customer.subscription.updated':
-        await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-        break;
-      default:
-        this.logger.log(`Unhandled event type: ${event.type}`);
+    // ── Idempotency & crash recovery ───────────────────────────────────
+    // Status lifecycle:
+    //   New event  → upsert(status='PROCESSING')
+    //   COMPLETED  → skip (already done)
+    //   FAILED     → upsert(status='PROCESSING') and retry
+    //   RECEIVED /
+    //   PROCESSING → skip (in-flight or crashed mid-way; safety)
+    //
+    // After processing:
+    //   Success → update(status='COMPLETED')
+    //   Error   → update(status='FAILED') then re-throw
+    //   Stripe sees 500, retries → FAILED detected → reprocessed
+    const existing = await this.prisma.webhookEvent.findUnique({
+      where: { id: event.id },
+    });
+
+    if (existing) {
+      if (existing.status === 'COMPLETED') {
+        this.logger.warn(`Duplicate webhook ${event.id} (${event.type}) — already completed`);
+        return { received: true };
+      }
+      if (existing.status !== 'FAILED') {
+        // RECEIVED or PROCESSING — either in-flight or crashed.
+        // Skip to avoid concurrent processing. Admin can reset to FAILED.
+        this.logger.warn(`Webhook ${event.id} (${event.type}) in status ${existing.status} — skipping`);
+        return { received: true };
+      }
+      // FAILED → retry
+      this.logger.log(`Retrying failed webhook ${event.id} (${event.type})`);
+    }
+
+    await this.prisma.webhookEvent.upsert({
+      where: { id: event.id },
+      create: { id: event.id, type: event.type, status: 'PROCESSING' },
+      update: { status: 'PROCESSING' },
+    });
+
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
+        case 'invoice.paid':
+          await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
+          break;
+        case 'invoice.payment_failed':
+          await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+        case 'customer.subscription.deleted':
+          await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
+        case 'customer.subscription.updated':
+          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          break;
+        default:
+          this.logger.log(`Unhandled event type: ${event.type}`);
+      }
+
+      await this.prisma.webhookEvent.update({
+        where: { id: event.id },
+        data: { status: 'COMPLETED' },
+      });
+    } catch (err) {
+      await this.prisma.webhookEvent.update({
+        where: { id: event.id },
+        data: { status: 'FAILED' },
+      }).catch(() => {}); // Best-effort: if DB write fails, event stays PROCESSING
+      throw err;
     }
 
     return { received: true };

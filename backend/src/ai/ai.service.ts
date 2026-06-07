@@ -333,8 +333,11 @@ Keep all content practical, concise, and interview-ready.`;
       include: { plan: true },
     });
 
-    const planId = subscription?.planId || 'plan_free';
-    const plan = subscription?.plan || await this.prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    const isActive = subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING';
+    const effectivePlanId = isActive ? (subscription?.planId || 'plan_free') : 'plan_free';
+    const plan = isActive
+      ? subscription.plan
+      : await this.prisma.subscriptionPlan.findUnique({ where: { id: effectivePlanId } });
 
     const features = (plan?.features || '{}') as any;
     const parsed = typeof features === 'string' ? JSON.parse(features) : features;

@@ -16,26 +16,32 @@ export default function PrintPage() {
     if (!id) { setError("Missing resume ID"); return; }
 
     (async () => {
+      console.log('[PRINT] rendering ResumeTemplate');
       if (typeof document !== "undefined" && document.querySelector('[data-sonner-toaster]')) {
         (document.querySelector('[data-sonner-toaster]') as HTMLElement).style.display = "none";
       }
 
       let token: string | null = searchParams.get("token");
+      console.log('[PRINT] token from URL:', token ? 'present' : 'missing');
       if (!token) {
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         token = session?.access_token ?? null;
+        console.log('[PRINT] token from Supabase session:', token ? 'present' : 'still missing');
       }
 
       if (!token) { setError("Not authenticated"); return; }
 
       const url = `${API_BASE_URL}/resumes/${id}`;
+      console.log('[PRINT] fetching resume:', url);
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('[PRINT] resume response status', response.status);
 
       const text = await response.text();
+      console.log('[PRINT] resume data', text.substring(0, 300));
 
       if (!response.ok) {
         setError(`API error ${response.status}: ${text.substring(0, 200)}`);

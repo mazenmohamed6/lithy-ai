@@ -85,40 +85,28 @@ export class ResumesController {
 
   @Post('render-pdf')
   @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Render resume print page URL to PDF via dedicated PDF service' })
-  async renderPdf(@Body() body: { url: string }, @Res() res: Response) {
-    const pdfServiceUrl = process.env.PDF_SERVICE_URL;
-    if (!pdfServiceUrl) {
-      this.logger.error('PDF_SERVICE_URL not set — deploy the PDF service and set this env var');
-      res.status(503).json({ message: 'PDF generation is not configured. Please contact support.' });
+  @ApiOperation({ summary: 'Render resume as PDF via Puppeteer' })
+  async renderPdf(@Body() body: { resumeId: string }, @CurrentUser() user: any, @Res() res: Response) {
+    this.logger.log(`[PDF] resumeId from body: ${body?.resumeId}`);
+    if (!body?.resumeId) {
+      this.logger.error(`[PDF] resumeId missing in request body`);
+      res.status(400).json({ message: 'Resume ID is required' });
       return;
     }
-
     try {
-      this.logger.log(`[PDF] Proxying to PDF service: ${pdfServiceUrl}/render-pdf`);
-      const response = await fetch(`${pdfServiceUrl.replace(/\/+$/, '')}/render-pdf`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: body.url }),
-        signal: AbortSignal.timeout(45000),
-      });
-
-      if (!response.ok) {
-        const errBody = await response.text().catch(() => '');
-        this.logger.error(`[PDF] PDF service returned ${response.status}: ${errBody}`);
-        res.status(response.status).json({ message: `PDF service error: ${errBody.substring(0, 200)}` });
-        return;
-      }
-
-      const pdfBuffer = await response.arrayBuffer();
-      this.logger.log(`[PDF] Received PDF (${pdfBuffer.byteLength} bytes)`);
+      this.logger.log(`[PDF] Generating PDF for resume ${body.resumeId}`);
+      const pdfBuffer = await this.resumesService.exportPdfWithChrome(body.resumeId, user.id);
+      this.logger.log(`[PDF] PDF generated (${pdfBuffer.length} bytes)`);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
-      res.send(Buffer.from(pdfBuffer));
+      res.send(pdfBuffer);
     } catch (err) {
+      this.logger.error(`[PDF] Controller caught error`);
+      this.logger.error(`[PDF]   type: ${err?.constructor?.name}`);
+      this.logger.error(`[PDF]   message: ${err?.message}`);
+      this.logger.error(`[PDF]   stack: ${err?.stack}`);
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`[PDF] Proxy failed: ${msg}`);
-      res.status(502).json({ message: `PDF service unreachable: ${msg}` });
+      res.status(500).json({ message: `PDF generation failed: ${msg.substring(0, 200)}` });
     }
   }
 

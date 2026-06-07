@@ -144,7 +144,7 @@ class ApiClient {
     if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
     const response = await fetch(`${this.baseUrl}${path}`, { method: "POST", headers, body: JSON.stringify(body), signal: controller.signal }).finally(() => clearTimeout(timeout));
     if (!response.ok) {
       const errBody = await response.json().catch(() => null);

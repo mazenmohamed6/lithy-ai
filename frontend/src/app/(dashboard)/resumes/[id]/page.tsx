@@ -135,15 +135,13 @@ export default function ResumeEditorPage() {
         await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
       }
 
-      const token = (await import("@/lib/supabase/client")).createClient().auth.getSession().then(({ data: { session } }) => session?.access_token);
-      const accessToken = await token;
-      if (!accessToken) { toast.error("Not authenticated"); return; }
+      const resumeId = params.id;
+      console.log('[PDF] resumeId', resumeId);
+      if (!resumeId) { toast.error("Missing resume ID"); return; }
 
-      const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${encodeURIComponent(accessToken)}`;
-      console.log('[PDF] requesting PDF via backend proxy');
       toast.loading("Generating PDF...");
 
-      await api.downloadPost("/resumes/render-pdf", { url: printUrl });
+      await api.downloadPost("/resumes/render-pdf", { resumeId });
       toast.dismiss();
       toast.success("PDF downloaded");
     } catch (err: any) {
@@ -268,10 +266,17 @@ export default function ResumeEditorPage() {
   return (
     <>
     <div className="flex h-[calc(100vh-4rem)]">
+      {/* Backdrop for mobile sidebar */}
+      {leftPanelOpen && (
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setLeftPanelOpen(false)} />
+      )}
       <div className={cn(
-        "w-80 border-r bg-muted/30 p-4 overflow-y-auto space-y-4 transition-all duration-200",
-        "hidden md:block",
-        leftPanelOpen ? "md:w-80" : "md:w-0 md:p-0 md:overflow-hidden",
+        "border-r bg-background overflow-y-auto space-y-4 transition-all duration-200 z-50",
+        // Mobile: fixed overlay when open, hidden when closed
+        leftPanelOpen ? "fixed inset-y-0 left-0 w-72 p-4" : "hidden",
+        // Desktop: always visible, collapsible
+        "md:block md:relative md:inset-auto md:w-80 md:bg-muted/30 md:p-4",
+        leftPanelOpen ? "md:w-80" : "md:w-0 md:overflow-hidden md:p-0",
       )}>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
