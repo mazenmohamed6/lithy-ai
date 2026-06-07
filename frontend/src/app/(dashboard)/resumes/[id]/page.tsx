@@ -127,7 +127,6 @@ export default function ResumeEditorPage() {
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownloadPdf = useCallback(async () => {
-    console.log('[PDF] handleDownloadPdf called (browser print path)');
     if (isNew) { toast.error("Save the resume first before downloading PDF"); return; }
 
     toast.info("Saving...");
@@ -135,21 +134,22 @@ export default function ResumeEditorPage() {
       if (saveStatus === "unsaved") {
         await api.put(`/resumes/${params.id}`, { title, sections, templateId: resume?.templateId });
       }
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) { toast.error("Not authenticated"); return; }
-      const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${encodeURIComponent(token)}`;
-      console.log('[PDF] opening print page:', printUrl);
 
-      if (!window.open(printUrl, `resume-print-${Date.now()}`)) {
-        window.location.href = printUrl;
-      }
-      toast.success("Print page opened");
+      const token = (await import("@/lib/supabase/client")).createClient().auth.getSession().then(({ data: { session } }) => session?.access_token);
+      const accessToken = await token;
+      if (!accessToken) { toast.error("Not authenticated"); return; }
+
+      const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${encodeURIComponent(accessToken)}`;
+      console.log('[PDF] requesting PDF via backend proxy');
+      toast.loading("Generating PDF...");
+
+      await api.downloadPost("/resumes/render-pdf", { url: printUrl });
+      toast.dismiss();
+      toast.success("PDF downloaded");
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[PDF] Error opening print page:', msg, err);
+      console.error('[PDF] Error:', msg, err);
+      toast.dismiss();
       toast.error(msg);
     }
   }, [title, sections, resume?.templateId, isNew, params.id, saveStatus]);

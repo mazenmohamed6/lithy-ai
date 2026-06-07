@@ -85,17 +85,40 @@ export class ResumesController {
 
   @Post('render-pdf')
   @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Render resume print page URL to PDF' })
+  @ApiOperation({ summary: 'Render resume print page URL to PDF via dedicated PDF service' })
   async renderPdf(@Body() body: { url: string }, @Res() res: Response) {
+    const pdfServiceUrl = process.env.PDF_SERVICE_URL;
+    if (!pdfServiceUrl) {
+      this.logger.error('PDF_SERVICE_URL not set — deploy the PDF service and set this env var');
+      res.status(503).json({ message: 'PDF generation is not configured. Please contact support.' });
+      return;
+    }
+
     try {
-      const pdf = await this.resumesService.renderPdfFromUrl(body.url);
+      this.logger.log(`[PDF] Proxying to PDF service: ${pdfServiceUrl}/render-pdf`);
+      const response = await fetch(`${pdfServiceUrl.replace(/\/+$/, '')}/render-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: body.url }),
+        signal: AbortSignal.timeout(45000),
+      });
+
+      if (!response.ok) {
+        const errBody = await response.text().catch(() => '');
+        this.logger.error(`[PDF] PDF service returned ${response.status}: ${errBody}`);
+        res.status(response.status).json({ message: `PDF service error: ${errBody.substring(0, 200)}` });
+        return;
+      }
+
+      const pdfBuffer = await response.arrayBuffer();
+      this.logger.log(`[PDF] Received PDF (${pdfBuffer.byteLength} bytes)`);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
-      res.send(pdf);
+      res.send(Buffer.from(pdfBuffer));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`PDF generation failed: ${msg}`, err instanceof Error ? err.stack : '');
-      res.status(500).json({ message: msg });
+      this.logger.error(`[PDF] Proxy failed: ${msg}`);
+      res.status(502).json({ message: `PDF service unreachable: ${msg}` });
     }
   }
 
