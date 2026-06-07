@@ -14,43 +14,59 @@ export default function PrintPage() {
   useEffect(() => {
     const token = searchParams.get("token");
     const id = params.id as string;
-    console.log(`[PrintPage] token=${token ? 'present' : 'missing'}, id=${id}`);
+    console.log(`[PRINT] Page loaded, token=${token ? 'present' : 'missing'}, id=${id}`);
     if (!token) { setError("Missing auth token"); return; }
     if (!id) { setError("Missing resume ID"); return; }
 
     const url = `${API_BASE_URL}/resumes/${id}`;
-    console.log(`[PrintPage] fetching ${url}`);
+    console.log(`[PRINT] Fetching resume from ${url}`);
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => {
         if (!r.ok) throw new Error(`API error: ${r.status}`);
-        console.log('[PrintPage] fetch OK, parsing JSON...');
+        console.log('[PRINT] Fetch OK, parsing JSON...');
         return r.json();
       })
       .then((data) => {
-        console.log('[PrintPage] resume data received, templateId=', data.templateId);
+        console.log('[PRINT] Resume loaded, templateId=', data.templateId);
         setResume(data);
       })
       .catch((e) => {
-        console.error('[PrintPage] fetch error:', e.message);
+        console.error('[PRINT] Fetch error:', e.message);
         setError(e.message);
       });
   }, [params.id, searchParams]);
 
   useEffect(() => {
-    if (resume) {
-      const timer = setTimeout(() => {
-        console.log('[PrintPage] auto-triggering window.print()');
-        window.print();
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
+    if (!resume) return;
+    let cancelled = false;
+
+    (async () => {
+      console.log('[PRINT] Resume loaded, waiting for DOM render...');
+
+      while (!document.querySelector('.res-root')) {
+        await new Promise(r => setTimeout(r, 50));
+        if (cancelled) return;
+      }
+      console.log('[PRINT] ResumeTemplate rendered (.res-root found)');
+
+      await document.fonts.ready;
+      console.log('[PRINT] Fonts ready');
+
+      await new Promise(r => setTimeout(r, 300));
+      if (cancelled) return;
+
+      console.log('[PRINT] Calling window.print()');
+      window.print();
+    })();
+
+    return () => { cancelled = true; };
   }, [resume]);
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      console.log('[PrintPage] afterprint event - closing tab');
+      console.log('[PRINT] Print dialog closed, closing tab');
       window.close();
     };
     window.addEventListener('afterprint', handleAfterPrint);
