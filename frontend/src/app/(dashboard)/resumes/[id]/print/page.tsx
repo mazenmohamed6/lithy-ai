@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ResumeTemplate } from "@/components/resume/ResumeTemplate";
 import { API_BASE_URL } from "@/lib/constants";
@@ -10,6 +10,7 @@ export default function PrintPage() {
   const searchParams = useSearchParams();
   const [resume, setResume] = useState<any>(null);
   const [error, setError] = useState<string>("");
+  const [printState, setPrintState] = useState<'idle' | 'loading' | 'printing' | 'done'>('idle');
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -20,6 +21,7 @@ export default function PrintPage() {
 
     const url = `${API_BASE_URL}/resumes/${id}`;
     console.log(`[PRINT] Fetching resume from ${url}`);
+    setPrintState('loading');
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -61,8 +63,14 @@ export default function PrintPage() {
       await new Promise(r => requestAnimationFrame(r));
       if (cancelled) return;
 
+      setPrintState('printing');
       console.log('[PRINT] Calling window.print()');
       window.print();
+
+      if (!cancelled) {
+        console.log('[PRINT] Print dialog closed');
+        setPrintState('done');
+      }
     })();
 
     return () => { cancelled = true; };
@@ -70,11 +78,16 @@ export default function PrintPage() {
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      console.log('[PRINT] Print dialog closed, closing tab');
-      window.close();
+      console.log('[PRINT] afterprint event');
     };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const handlePrintClick = useCallback(() => {
+    setPrintState('printing');
+    window.print();
+    setPrintState('done');
   }, []);
 
   if (error) {
@@ -92,6 +105,24 @@ export default function PrintPage() {
         body { margin: 0; padding: 0 !important; background: #fff; }
         main { padding: 0 !important; max-width: none !important; }
       `}</style>
+      {printState !== 'done' && (
+        <div style={{
+          position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
+          display: 'flex', gap: 8, alignItems: 'center',
+        }}>
+          {printState === 'printing' && (
+            <span style={{ fontSize: 13, color: '#666' }}>Printing...</span>
+          )}
+          <button onClick={handlePrintClick}
+            style={{
+              padding: '8px 20px', background: '#3b82f6', color: '#fff',
+              border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}>
+            {printState === 'idle' || printState === 'loading' ? 'Print' : 'Print Again'}
+          </button>
+        </div>
+      )}
       <ResumeTemplate
         sections={resume.sections}
         title={resume.title}
