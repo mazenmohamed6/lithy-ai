@@ -38,6 +38,25 @@ export default function PrintPage() {
       });
   }, [params.id, searchParams]);
 
+  useEffect(() => {
+    if (resume) {
+      const timer = setTimeout(() => {
+        console.log('[PrintPage] auto-triggering window.print()');
+        window.print();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [resume]);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      console.log('[PrintPage] afterprint event - closing tab');
+      window.close();
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
   if (error) {
     return <div className="text-red-500 p-4 text-center">{error}</div>;
   }
@@ -50,7 +69,7 @@ export default function PrintPage() {
     <>
       <style>{`
         header, footer, [data-sonner-toaster] { display: none !important; }
-        body { margin: 0; padding: 0 !important; }
+        body { margin: 0; padding: 0 !important; background: #fff; }
         main { padding: 0 !important; max-width: none !important; }
       `}</style>
       <ResumeTemplate

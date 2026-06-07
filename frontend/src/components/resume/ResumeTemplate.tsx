@@ -128,6 +128,13 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;500;600;700;800&display=swap');
         .res-root { max-width: 800px; margin: 0 auto; background: #fff; }
 
+        @media print {
+          @page { margin: 0.4in; }
+          .res-root { max-width: 100%; }
+          body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .res-root { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
         /* ===== CLASSIC ===== */
         .res-classic, .res-default {
           font-family: 'Georgia', 'Times New Roman', serif;
