@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lithy-pdf-service
+    rootDir: pdf-service
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "3001"
