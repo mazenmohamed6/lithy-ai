@@ -460,27 +460,54 @@ export class ResumesService {
   }
 
   async renderPdfFromUrl(url: string): Promise<Buffer> {
+    this.logger.log('[PDF] renderPdfFromUrl called');
     ensurePuppeteer();
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: { width: 800, height: 1100 },
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
+    this.logger.log('[PDF] ensurePuppeteer OK');
+
+    let browser;
     try {
+      this.logger.log('[PDF] resolving chromium executablePath...');
+      const execPath = await chromium.executablePath();
+      this.logger.log(`[PDF] executablePath = ${execPath}`);
+
+      this.logger.log('[PDF] launching puppeteer...');
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: { width: 800, height: 1100 },
+        executablePath: execPath,
+        headless: true,
+      });
+      this.logger.log('[PDF] puppeteer launch OK');
+
       const page = await browser.newPage();
+
+      this.logger.log(`[PDF] navigating to print URL...`);
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      this.logger.log('[PDF] page.goto OK (domcontentloaded)');
+
+      this.logger.log('[PDF] waiting for .res-root selector...');
       await page.waitForSelector('.res-root', { timeout: 15000 });
-      await page.evaluate(() => document.fonts.ready);
+      this.logger.log('[PDF] .res-root found - print page rendered');
+
+      const fontsReady = await page.evaluate(() => document.fonts.ready);
+      this.logger.log('[PDF] fonts ready');
+
+      this.logger.log('[PDF] calling page.pdf()...');
       const pdf = await page.pdf({
         format: 'Letter',
         printBackground: true,
         margin: { top: '0.4in', bottom: '0.4in', left: '0.4in', right: '0.4in' },
       });
-      this.logger.log(`PDF generated successfully (${pdf.length} bytes)`);
+      this.logger.log(`[PDF] page.pdf() OK - ${pdf.length} bytes`);
       return Buffer.from(pdf);
+    } catch (err) {
+      this.logger.error(`[PDF] FAILED: ${err instanceof Error ? err.message : String(err)}`);
+      throw err;
     } finally {
-      await browser.close();
+      if (browser) {
+        await browser.close();
+        this.logger.log('[PDF] browser closed');
+      }
     }
   }
 

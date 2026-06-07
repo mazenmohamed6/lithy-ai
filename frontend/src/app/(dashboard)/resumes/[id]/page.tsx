@@ -127,6 +127,7 @@ export default function ResumeEditorPage() {
   }, [title, sections, resume?.templateId, isNew, params.id]);
 
   const handleDownloadPdf = useCallback(async () => {
+    console.log('[PDF] handleDownloadPdf called');
     if (isNew) { toast.error("Save the resume first before downloading PDF"); return; }
     toast.info("Saving...");
     try {
@@ -140,60 +141,71 @@ export default function ResumeEditorPage() {
       const token = session?.access_token;
       if (!token) { toast.error("Not authenticated"); return; }
       const printUrl = `${window.location.origin}/resumes/${params.id}/print?token=${encodeURIComponent(token)}`;
+      console.log('[PDF] POST /resumes/render-pdf url=', printUrl);
 
       await api.downloadPost('/resumes/render-pdf', { url: printUrl });
+      console.log('[PDF] Server PDF download completed successfully');
       toast.success("PDF downloaded successfully!");
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || "Server PDF failed, trying client...");
-      try {
-        const srcEl2 = captureRef.current?.querySelector('.res-root') as HTMLElement | null;
-        if (!srcEl2) throw new Error("Preview element not found");
-        const fixedW = srcEl2.offsetWidth;
-        await document.fonts.ready;
-        await new Promise(r => requestAnimationFrame(r));
-        const svgUri = await (toSvg as any)(srcEl2, {
-          bgcolor: '#ffffff',
-          width: fixedW,
-          style: { 'max-width': 'none', 'margin': '0', 'border': 'none', 'outline': 'none' },
-          onclone: (clonedRoot: HTMLElement) => {
-            clonedRoot.querySelectorAll('.res-item').forEach((el: Element) => {
-              (el as HTMLElement).style.borderLeft = 'none';
-            });
-          },
-        });
-        const img = new Image();
-        img.src = svgUri;
-        await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
-        const scale = 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth * scale;
-        canvas.height = img.naturalHeight * scale;
-        const ctx = canvas.getContext('2d')!;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.scale(scale, scale);
-        ctx.drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL('image/png');
-        const doc = new jsPDF({ format: 'letter', unit: 'pt' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
-        const margin = 28.8;
-        const maxW = pageW - margin * 2;
-        const maxH = pageH - margin * 2;
-        const cssToPt = 72 / 96;
-        const fitScale = Math.min(maxW / (img.naturalWidth * cssToPt), maxH / (img.naturalHeight * cssToPt));
-        const w = img.naturalWidth * cssToPt * fitScale;
-        const h = img.naturalHeight * cssToPt * fitScale;
-        const x = margin + (maxW - w) / 2;
-        const y = margin + (maxH - h) / 2;
-        doc.addImage(dataUrl, 'PNG', x, y, w, h);
-        doc.save(`${title || 'resume'}.pdf`);
-        toast.success("PDF downloaded successfully (client fallback)!");
-      } catch (fallbackErr) {
-        toast.error("PDF generation failed");
-        console.error("PDF fallback error:", fallbackErr);
+      console.error('[PDF] Server PDF generation failed:', msg, err);
+      toast.error(`Server PDF failed: ${msg}`);
+
+      const fallbackEnabled = process.env.NEXT_PUBLIC_PDF_FALLBACK_ENABLED !== 'false';
+      if (fallbackEnabled) {
+        console.log('[PDF] Fallback enabled - trying canvas export');
+        try {
+          const srcEl2 = captureRef.current?.querySelector('.res-root') as HTMLElement | null;
+          if (!srcEl2) throw new Error("Preview element not found");
+          const fixedW = srcEl2.offsetWidth;
+          await document.fonts.ready;
+          await new Promise(r => requestAnimationFrame(r));
+          const svgUri = await (toSvg as any)(srcEl2, {
+            bgcolor: '#ffffff',
+            width: fixedW,
+            style: { 'max-width': 'none', 'margin': '0', 'border': 'none', 'outline': 'none' },
+            onclone: (clonedRoot: HTMLElement) => {
+              clonedRoot.querySelectorAll('.res-item').forEach((el: Element) => {
+                (el as HTMLElement).style.borderLeft = 'none';
+              });
+            },
+          });
+          const img = new Image();
+          img.src = svgUri;
+          await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; });
+          const scale = 2;
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth * scale;
+          canvas.height = img.naturalHeight * scale;
+          const ctx = canvas.getContext('2d')!;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.imageSmoothingEnabled = true;
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/png');
+          const doc = new jsPDF({ format: 'letter', unit: 'pt' });
+          const pageW = doc.internal.pageSize.getWidth();
+          const pageH = doc.internal.pageSize.getHeight();
+          const margin = 28.8;
+          const maxW = pageW - margin * 2;
+          const maxH = pageH - margin * 2;
+          const cssToPt = 72 / 96;
+          const fitScale = Math.min(maxW / (img.naturalWidth * cssToPt), maxH / (img.naturalHeight * cssToPt));
+          const w = img.naturalWidth * cssToPt * fitScale;
+          const h = img.naturalHeight * cssToPt * fitScale;
+          const x = margin + (maxW - w) / 2;
+          const y = margin + (maxH - h) / 2;
+          doc.addImage(dataUrl, 'PNG', x, y, w, h);
+          doc.save(`${title || 'resume'}.pdf`);
+          toast.success("PDF downloaded successfully (client fallback)!");
+          console.log('[PDF] Fallback canvas export OK');
+        } catch (fallbackErr) {
+          toast.error("PDF generation failed");
+          console.error("[PDF] Fallback also failed:", fallbackErr);
+        }
+      } else {
+        console.log('[PDF] Fallback disabled - error visible to user');
       }
     }
   }, [title, sections, resume?.templateId, isNew, params.id, saveStatus]);

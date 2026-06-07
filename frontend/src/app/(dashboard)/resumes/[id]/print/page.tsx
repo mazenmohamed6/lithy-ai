@@ -14,18 +14,28 @@ export default function PrintPage() {
   useEffect(() => {
     const token = searchParams.get("token");
     const id = params.id as string;
+    console.log(`[PrintPage] token=${token ? 'present' : 'missing'}, id=${id}`);
     if (!token) { setError("Missing auth token"); return; }
     if (!id) { setError("Missing resume ID"); return; }
 
-    fetch(`${API_BASE_URL}/resumes/${id}`, {
+    const url = `${API_BASE_URL}/resumes/${id}`;
+    console.log(`[PrintPage] fetching ${url}`);
+    fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => {
         if (!r.ok) throw new Error(`API error: ${r.status}`);
+        console.log('[PrintPage] fetch OK, parsing JSON...');
         return r.json();
       })
-      .then(setResume)
-      .catch((e) => setError(e.message));
+      .then((data) => {
+        console.log('[PrintPage] resume data received, templateId=', data.templateId);
+        setResume(data);
+      })
+      .catch((e) => {
+        console.error('[PrintPage] fetch error:', e.message);
+        setError(e.message);
+      });
   }, [params.id, searchParams]);
 
   if (error) {
