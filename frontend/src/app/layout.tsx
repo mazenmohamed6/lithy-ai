@@ -60,13 +60,11 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "LITHY AI",
-    images: [{ url: "/logo.svg", width: 132, height: 32 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "LITHY AI - AI Resume Builder",
     description: "Build ATS-optimized resumes with AI. Arabic & English support. Built for Egypt & MENA.",
-    images: ["/logo.svg"],
   },
   robots: { index: true, follow: true },
   alternates: {
@@ -78,7 +76,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preconnect" href="https://pobeisftgpkbgpnspser.supabase.co" />
         <link rel="dns-prefetch" href="https://pobeisftgpkbgpnspser.supabase.co" />
         <script
