@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { APP_NAME } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/context";
 
@@ -14,10 +15,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="size-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs">L</span>
-              </div>
-              <span className="text-base font-bold">{APP_NAME}</span>
+              <Image src="/logo.svg" alt={APP_NAME} width={100} height={24} className="h-6 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               {t("footer.description")}

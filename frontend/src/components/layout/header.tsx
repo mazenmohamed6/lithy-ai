@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,10 +57,7 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">L</span>
-            </div>
-            <span className="text-lg font-bold tracking-tight">{APP_NAME}</span>
+            <Image src="/logo.svg" alt={APP_NAME} width={110} height={28} className="h-7 w-auto" priority />
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
