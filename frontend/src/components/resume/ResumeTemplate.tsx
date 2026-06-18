@@ -6,20 +6,36 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
 
   const contactBlock = () => {
     const name = contact.fullName || "Your Name";
-    const items = [
-      contact.email,
-      contact.phone,
-      contact.location,
-      contact.linkedin ? contact.linkedin.replace(/^https?:\/\//, '') : null,
-      contact.website ? contact.website.replace(/^https?:\/\//, '') : null,
-    ].filter(Boolean);
+
+    type ContactItem = { text: string; href?: string };
+    const items: ContactItem[] = [];
+    if (contact.email) items.push({ text: contact.email });
+    if (contact.phone) items.push({ text: contact.phone });
+    if (contact.location) items.push({ text: contact.location });
+    const linkedinText = contact.linkedinLabel || (contact.linkedin ? contact.linkedin.replace(/^https?:\/\//, '') : null);
+    if (linkedinText) items.push({ text: linkedinText, href: contact.linkedin || undefined });
+    if (contact.website) items.push({ text: contact.website.replace(/^https?:\/\//, '') });
+
+    const renderContactBar = (separator: string) =>
+      items.map((item, i) => (
+        <span key={i}>
+          {i > 0 && <>{separator}</>}
+          {item.href
+            ? <a href={item.href} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{item.text}</a>
+            : <>{item.text}</>}
+        </span>
+      ));
 
     if (tid === "modern") {
       return (
         <div className="res-contact">
           <h1 className="res-name">{name}</h1>
           <div className="res-contact-grid">
-            {items.map((item, i) => <span key={i} className="res-contact-chip">{item}</span>)}
+            {items.map((item, i) =>
+              item.href
+                ? <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" className="res-contact-chip" style={{ color: 'inherit', textDecoration: 'none' }}>{item.text}</a>
+                : <span key={i} className="res-contact-chip">{item.text}</span>
+            )}
           </div>
         </div>
       );
@@ -28,7 +44,7 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
       return (
         <div className="res-header-creative">
           <h1 className="res-name">{name}</h1>
-          <p className="res-contact-bar">{items.join("  ·  ")}</p>
+          <p className="res-contact-bar">{renderContactBar("  ·  ")}</p>
         </div>
       );
     }
@@ -36,7 +52,7 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
       return (
         <div className="res-header-minimal">
           <h1 className="res-name">{name}</h1>
-          <p className="res-contact-bar">{items.join("  /  ")}</p>
+          <p className="res-contact-bar">{renderContactBar("  /  ")}</p>
         </div>
       );
     }
@@ -45,7 +61,7 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
         <div className="res-header-professional">
           <div className="res-prof-rule-top" />
           <h1 className="res-name">{name}</h1>
-          <p className="res-contact-bar">{items.join("  |  ")}</p>
+          <p className="res-contact-bar">{renderContactBar("  |  ")}</p>
           <div className="res-prof-rule-bottom" />
         </div>
       );
@@ -53,7 +69,7 @@ export function ResumeTemplate({ sections, title, templateId }: { sections: any[
     return (
       <div className="res-header-classic">
         <h1 className="res-name">{name}</h1>
-        <p className="res-contact-bar">{items.join("  |  ")}</p>
+        <p className="res-contact-bar">{renderContactBar("  |  ")}</p>
         <div className="res-classic-rule" />
       </div>
     );

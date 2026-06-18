@@ -473,6 +473,7 @@ function ContactEditor({ data, onUpdate }: { data: any; onUpdate: (data: any) =>
           <div><label className="text-sm font-medium">Phone</label><Input value={fields.phone || ""} onChange={(e) => onUpdate({ ...data, fields: { ...fields, phone: e.target.value } })} /></div>
           <div><label className="text-sm font-medium">Location</label><Input value={fields.location || ""} onChange={(e) => onUpdate({ ...data, fields: { ...fields, location: e.target.value } })} /></div>
           <div><label className="text-sm font-medium">LinkedIn URL</label><Input value={fields.linkedin || ""} onChange={(e) => onUpdate({ ...data, fields: { ...fields, linkedin: e.target.value } })} /></div>
+          <div><label className="text-sm font-medium">LinkedIn Preview</label><Input value={fields.linkedinLabel || ""} onChange={(e) => onUpdate({ ...data, fields: { ...fields, linkedinLabel: e.target.value } })} placeholder="e.g. linkedin.com/in/username" /></div>
           <div><label className="text-sm font-medium">Website</label><Input value={fields.website || ""} onChange={(e) => onUpdate({ ...data, fields: { ...fields, website: e.target.value } })} /></div>
         </div>
       </CardContent>

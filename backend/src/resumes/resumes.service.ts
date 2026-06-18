@@ -314,13 +314,22 @@ export class ResumesService {
       .filter((s) => s.id !== 'contact' && s.enabled !== false)
       .map(secHtml).join('');
 
-    const items = [
-      contact.email,
-      contact.phone,
-      contact.location,
-      contact.linkedin ? (contact.linkedin as string).replace(/^https?:\/\//, '') : null,
-      contact.website ? (contact.website as string).replace(/^https?:\/\//, '') : null,
-    ].filter(Boolean);
+    const linkedinDisplay = contact.linkedinLabel || (contact.linkedin ? (contact.linkedin as string).replace(/^https?:\/\//, '') : null);
+    type ContactItem = { display: string; href?: string };
+    const contactItems: ContactItem[] = [];
+    if (contact.email) contactItems.push({ display: contact.email as string });
+    if (contact.phone) contactItems.push({ display: contact.phone as string });
+    if (contact.location) contactItems.push({ display: contact.location as string });
+    if (linkedinDisplay) contactItems.push({ display: linkedinDisplay, href: contact.linkedin as string | undefined });
+    if (contact.website) contactItems.push({ display: (contact.website as string).replace(/^https?:\/\//, '') });
+
+    const barHtml = (sep: string) => contactItems.map((c, i) => {
+      const text = c.href ? `<a href="${c.href}" style="color:inherit;text-decoration:none">${c.display}</a>` : c.display;
+      return (i ? sep : '') + text;
+    }).join('');
+    const chipHtml = () => contactItems.map(c =>
+      c.href ? `<a href="${c.href}" style="color:inherit;text-decoration:none" class="res-contact-chip">${c.display}</a>` : `<span class="res-contact-chip">${c.display}</span>`
+    ).join('');
 
     let css = '';
     let headerHtml = '';
@@ -342,7 +351,7 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#475569;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#1e293b;background:#eef2ff;padding:4px 12px;border-radius:6px;font-weight:500}`;
-      headerHtml = `<div class="res-contact"><h1 class="res-name">${contact.fullName || resume.title}</h1><div class="res-contact-grid">${items.map((i) => `<span class="res-contact-chip">${i}</span>`).join('')}</div></div>`;
+      headerHtml = `<div class="res-contact"><h1 class="res-name">${contact.fullName || resume.title}</h1><div class="res-contact-grid">${chipHtml()}</div></div>`;
     } else if (templateId === 'minimal') {
       css = `
 .res-root{max-width:800px;margin:0 auto;background:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#333;line-height:1.5}
@@ -359,7 +368,7 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#555;line-height:1.7;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:4px}
 .res-skill-tag{font-size:10px;color:#666;padding:2px 8px;border:1px solid #eee;letter-spacing:.5px}`;
-      headerHtml = `<div class="res-header-minimal"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  /  ')}</p></div>`;
+      headerHtml = `<div class="res-header-minimal"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${barHtml('  /  ')}</p></div>`;
     } else if (templateId === 'professional') {
       css = `
 .res-root{max-width:800px;margin:0 auto;background:#fff;font-family:Georgia,'Times New Roman',serif;color:#2c3e50;line-height:1.5}
@@ -380,7 +389,7 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#444;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#2c3e50;background:#edf2f7;padding:3px 10px}`;
-      headerHtml = `<div class="res-header-professional"><div class="res-prof-rule-top"></div><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-prof-rule-bottom"></div></div>`;
+      headerHtml = `<div class="res-header-professional"><div class="res-prof-rule-top"></div><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${barHtml('  |  ')}</p><div class="res-prof-rule-bottom"></div></div>`;
     } else if (templateId === 'creative') {
       css = `
 .res-root{max-width:800px;margin:0 auto;background:#fff;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#18181b;line-height:1.5}
@@ -398,7 +407,7 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#52525b;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#18181b;background:#fce7f3;padding:4px 12px;border-radius:20px;font-weight:500}`;
-      headerHtml = `<div class="res-header-creative"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  ·  ')}</p></div>`;
+      headerHtml = `<div class="res-header-creative"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${barHtml('  ·  ')}</p></div>`;
     } else {
       css = `
 .res-root{max-width:800px;margin:0 auto;background:#fff;font-family:Georgia,'Times New Roman',serif;color:#2d2d2d;line-height:1.5}
@@ -417,7 +426,7 @@ export class ResumesService {
 .res-text-body{font-size:12px;color:#444;line-height:1.6;white-space:pre-line}
 .res-skills{display:flex;flex-wrap:wrap;gap:6px}
 .res-skill-tag{font-size:11px;color:#555;background:#f5f2eb;padding:3px 10px;border-radius:2px}`;
-      headerHtml = `<div class="res-header-classic"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${items.join('  |  ')}</p><div class="res-classic-rule"></div></div>`;
+      headerHtml = `<div class="res-header-classic"><h1 class="res-name">${contact.fullName || resume.title}</h1><p class="res-contact-bar">${barHtml('  |  ')}</p><div class="res-classic-rule"></div></div>`;
     }
 
     return `<!DOCTYPE html>
@@ -628,11 +637,21 @@ export class ResumesService {
     const pw = doc.page.width - ml - doc.page.margins.right;
 
     /*** HEADER ***/
+    const linkedinLabel = contact.linkedinLabel || (contact.linkedin ? (contact.linkedin as string).replace(/^https?:\/\//, '') : null);
     const fmtLink = (v: string) => v ? v.replace(/^https?:\/\//, '') : '';
+    const contactParts = (): string[] => {
+      const p: string[] = [];
+      if (contact.email) p.push(contact.email as string);
+      if (contact.phone) p.push(contact.phone as string);
+      if (contact.location) p.push(contact.location as string);
+      if (linkedinLabel) p.push(linkedinLabel);
+      if (contact.website) p.push(fmtLink(contact.website as string));
+      return p;
+    };
     if (templateId === 'classic' || templateId === 'default') {
       doc.fontSize(24).font('Helvetica-Bold').fillColor('#1a1a1a')
         .text(contact.fullName || resume.title, ml, doc.y, { align: 'center' });
-      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  |  ');
+      const cl = contactParts().join('  |  ');
       if (cl) doc.fontSize(10).font('Helvetica').fillColor('#555').text(cl, { align: 'center' });
       doc.moveDown(0.3);
       const y1 = doc.y; doc.moveTo(ml, y1).lineTo(ml + pw, y1).strokeColor('#ddd').lineWidth(1).stroke();
@@ -644,8 +663,8 @@ export class ResumesService {
       if (contact.email) contactGrid.push(contact.email);
       if (contact.phone) contactGrid.push(contact.phone);
       if (contact.location) contactGrid.push(contact.location);
-      if (contact.linkedin) contactGrid.push(fmtLink(contact.linkedin));
-      if (contact.website) contactGrid.push(fmtLink(contact.website));
+      if (linkedinLabel) contactGrid.push(linkedinLabel);
+      if (contact.website) contactGrid.push(fmtLink(contact.website as string));
       if (contactGrid.length) {
         doc.fontSize(9).font('Helvetica').fillColor('#475569');
         const startY = doc.y + 4;
@@ -658,7 +677,7 @@ export class ResumesService {
     } else if (templateId === 'minimal') {
       doc.fontSize(28).font('Helvetica').fillColor('#111')
         .text(contact.fullName || resume.title, ml, doc.y, { align: 'center' });
-      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  /  ');
+      const cl = contactParts().join('  /  ');
       if (cl) doc.fontSize(9.5).font('Helvetica').fillColor('#888').text(cl, { align: 'center' });
       doc.moveDown(0.3);
       const y3 = doc.y; doc.moveTo(ml + 60, y3).lineTo(ml + pw - 60, y3).strokeColor('#ccc').lineWidth(0.5).stroke();
@@ -673,14 +692,14 @@ export class ResumesService {
       doc.moveDown(0.15);
       doc.moveTo(ml + 100, doc.y).lineTo(ml + pw - 100, doc.y).strokeColor('#1a365d').lineWidth(1).stroke();
       doc.moveDown(0.3);
-      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  |  ');
+      const cl = contactParts().join('  |  ');
       if (cl) doc.fontSize(9.5).font('Helvetica').fillColor('#2d3748').text(cl, { align: 'center' });
       doc.moveDown(0.5);
     } else if (templateId === 'creative') {
       doc.rect(0, 0, doc.page.width, 95).fillColor('#667eea').fill();
       doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold')
         .text(contact.fullName || resume.title, ml, 28, { align: 'center' });
-      const cl = [contact.email, contact.phone, contact.location, fmtLink(contact.linkedin), fmtLink(contact.website)].filter(Boolean).join('  ·  ');
+      const cl = contactParts().join('  ·  ');
       if (cl) doc.fontSize(10).font('Helvetica').fillColor('#ffffff').text(cl, ml, 60, { align: 'center' });
       doc.y = 110;
     }
