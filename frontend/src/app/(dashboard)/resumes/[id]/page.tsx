@@ -283,20 +283,23 @@ export default function ResumeEditorPage() {
           <Input value={title} onChange={(e) => setTitle(e.target.value)} className="font-semibold" />
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase">Sections</p>
-          {sections.map((section, index) => (
-            <div key={section.id} className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-muted ${activeSection === section.id ? "bg-muted" : ""}`} onClick={() => setActiveSection(section.id)}>
-              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-              <span className="flex-1 text-sm">{section.title}</span>
-              {!["contact", "summary", "experience", "education", "skills"].includes(section.id) && (
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); removeSection(section.id); }}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase">Sections</p>
+            {sections.map((section, index) => (
+              <div key={section.id} className={`flex items-center gap-1 p-2 rounded-md cursor-pointer hover:bg-muted ${activeSection === section.id ? "bg-muted" : ""}`} onClick={() => setActiveSection(section.id)}>
+                <div className="flex flex-col gap-0.5">
+                  <button onClick={(e) => { e.stopPropagation(); moveSection(index, -1); }} className="disabled:opacity-20" disabled={index === 0}><svg className="h-3 w-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg></button>
+                  <button onClick={(e) => { e.stopPropagation(); moveSection(index, 1); }} className="disabled:opacity-20" disabled={index === sections.length - 1}><svg className="h-3 w-3 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+                </div>
+                <span className="flex-1 text-sm leading-tight">{section.title}</span>
+                {!["contact", "summary", "experience", "education", "skills"].includes(section.id) && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={(e) => { e.stopPropagation(); removeSection(section.id); }}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
 
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground uppercase">Add Section</p>
