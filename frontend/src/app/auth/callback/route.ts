@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? "https://backend-mazens-projects-a577fb62.vercel.app/api/v1" : "http://localhost:4000/api/v1");
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);

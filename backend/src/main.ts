@@ -11,7 +11,10 @@ async function bootstrap() {
 
   app.use(compression());
   app.use(cookieParser());
-  app.enableCors({ origin: '*', credentials: true });
+  app.enableCors({
+    origin: (origin, callback) => callback(null, origin || true),
+    credentials: true,
+  });
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(
     new ValidationPipe({
