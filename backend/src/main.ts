@@ -6,13 +6,13 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
-async function bootstrap() {
+export async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(compression());
   app.use(cookieParser());
   app.enableCors({
-    origin: (origin, callback) => callback(null, origin || true),
+    origin: (origin: string | undefined, callback: (err: Error | null, origin?: string | boolean) => void) => callback(null, origin || true),
     credentials: true,
   });
   app.useGlobalFilters(new AllExceptionsFilter());
@@ -25,8 +25,16 @@ async function bootstrap() {
     }),
   );
 
+  if (process.env.VERCEL) {
+    await app.init();
+    return app.getHttpAdapter().getInstance();
+  }
+
   const port = process.env.PORT || 4000;
   await app.listen(port);
   new Logger('Bootstrap').log(`API running on port ${port}`);
 }
-bootstrap();
+
+if (!process.env.VERCEL) {
+  bootstrap();
+}

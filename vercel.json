@@ -2,8 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "cd frontend && npx next build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "npm install --no-package-lock --legacy-peer-deps",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "https://backend-mazens-projects-a577fb62.vercel.app/api/:path*" }
-  ]
+  "installCommand": "npm install --no-package-lock --legacy-peer-deps"
 }

@@ -6,6 +6,7 @@ type RequestOptions = {
   headers?: Record<string, string>;
   cache?: RequestCache;
   retries?: number;
+  timeout?: number;
 };
 
 function generateRequestId(): string {
@@ -49,7 +50,7 @@ class ApiClient {
   }
 
   async request<T = any>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { method = "GET", body, headers: extraHeaders, cache, retries = 2 } = options;
+    const { method = "GET", body, headers: extraHeaders, cache, retries = 2, timeout = 60000 } = options;
     const authHeaders = await this.getAuthHeaders();
     const requestId = generateRequestId();
     let lastError: Error | null = null;
@@ -61,7 +62,7 @@ class ApiClient {
           headers: { ...authHeaders, ...extraHeaders, "X-Request-Id": requestId },
           body: body ? JSON.stringify(body) : undefined,
           cache,
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(timeout),
         });
 
         if (!response.ok) {

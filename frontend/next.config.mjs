@@ -12,6 +12,11 @@ const nextConfig = {
       bodySizeLimit: "20mb",
     },
   },
+  async rewrites() {
+    return [
+      { source: "/api/:path*", destination: "https://backend-mazens-projects-a577fb62.vercel.app/api/:path*" },
+    ];
+  },
 };
 
 export default nextConfig;
