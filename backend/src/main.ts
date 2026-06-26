@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
+let cachedApp: any;
+
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
@@ -33,6 +35,13 @@ export async function bootstrap() {
   const port = process.env.PORT || 4000;
   await app.listen(port);
   new Logger('Bootstrap').log(`API running on port ${port}`);
+}
+
+export default async function handler(req: any, res: any) {
+  if (!cachedApp) {
+    cachedApp = await bootstrap();
+  }
+  cachedApp(req, res);
 }
 
 if (!process.env.VERCEL) {
