@@ -1,21 +1,21 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import express from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 let cachedApp: any;
 
 export async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    rawBody: true,
-    bodyParser: {
-      json: { limit: '20mb' },
-      urlencoded: { limit: '20mb', extended: true },
-    },
-  });
+  const server = express();
+  server.use(express.json({ limit: '20mb', verify: (req: any, _res, buf) => { req.rawBody = buf; } }));
+  server.use(express.urlencoded({ limit: '20mb', extended: true, verify: (req: any, _res, buf) => { req.rawBody = buf; } }));
+
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
   app.use(compression());
   app.use(cookieParser());
