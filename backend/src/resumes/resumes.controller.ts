@@ -55,11 +55,11 @@ export class ResumesController {
 
   @Post('upload')
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Upload resume file from device' })
   @ApiConsumes('multipart/form-data')
   async upload(@CurrentUser() user: any, @UploadedFile() file: any) {
-    if (!file) throw new BadRequestException('No file uploaded or file too large (max 10MB)');
+    if (!file) throw new BadRequestException('No file uploaded or file too large (max 20MB)');
     return this.resumesService.createFromUpload(user.id, user.email, file);
   }
 
@@ -126,11 +126,11 @@ export class ResumesController {
 
   @Post('extract-text')
   @UseGuards(AuthGuard)
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Extract text from file without creating resume' })
   @ApiConsumes('multipart/form-data')
   async extractText(@UploadedFile() file: any) {
-    if (!file) throw new BadRequestException('No file uploaded or file too large (max 10MB)');
+    if (!file) throw new BadRequestException('No file uploaded or file too large (max 20MB)');
     const text = await this.resumesService.extractFileText(file);
     return { text };
   }

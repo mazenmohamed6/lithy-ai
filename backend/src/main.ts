@@ -9,7 +9,13 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 let cachedApp: any;
 
 export async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    bodyParser: {
+      json: { limit: '20mb' },
+      urlencoded: { limit: '20mb', extended: true },
+    },
+  });
 
   app.use(compression());
   app.use(cookieParser());

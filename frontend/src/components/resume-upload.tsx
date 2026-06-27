@@ -21,8 +21,8 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
       toast.error("Only PDF, DOCX, DOC, and TXT files are supported");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File is too large. Maximum size is 10MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("File is too large. Maximum size is 20MB.");
       return;
     }
 

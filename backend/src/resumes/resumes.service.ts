@@ -214,7 +214,7 @@ export class ResumesService {
 
     try {
       if (ext === '.txt') {
-        return file.buffer.toString('utf-8').trim().substring(0, 25000);
+        return file.buffer.toString('utf-8').trim().substring(0, 100000);
       } else if (ext === '.pdf') {
         const data = new Uint8Array(file.buffer);
         const doc = await pdfjsLib.getDocument({ data }).promise;
@@ -226,10 +226,10 @@ export class ResumesService {
           pages.push(text);
         }
         await doc.destroy();
-        return pages.join('\n\n').trim().substring(0, 25000);
+        return pages.join('\n\n').trim().substring(0, 100000);
       } else if (ext === '.docx' || ext === '.doc') {
         const result = await mammoth.extractRawText({ buffer: file.buffer });
-        return (result.value || '').trim().substring(0, 25000);
+        return (result.value || '').trim().substring(0, 100000);
       }
     } catch (err) {
       this.logger.warn(`Text extraction failed for ${file.originalname}: ${err}`);
