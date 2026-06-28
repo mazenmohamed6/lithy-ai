@@ -51,4 +51,28 @@ export class AiController {
   async optimizeLinkedIn(@CurrentUser() user: any, @Body() body: any) {
     return this.aiService.optimizeLinkedIn(user.id, user.email, body);
   }
+
+  @Post('resume-tailor')
+  @ApiOperation({ summary: 'Tailor resume to job description' })
+  async resumeTailor(@CurrentUser() user: any, @Body() body: any) {
+    return this.aiService.resumeTailor(user.id, user.email, body);
+  }
+
+  @Post('resume-review')
+  @ApiOperation({ summary: 'Review resume quality' })
+  async resumeReview(@CurrentUser() user: any, @Body() body: any) {
+    return this.aiService.resumeReview(user.id, user.email, body);
+  }
+
+  @Post('career-advisor')
+  @ApiOperation({ summary: 'Get career advice' })
+  async careerAdvisor(@CurrentUser() user: any, @Body() body: any) {
+    return this.aiService.careerAdvisor(user.id, user.email, body);
+  }
+
+  @Post('portfolio-review')
+  @ApiOperation({ summary: 'Review portfolio and GitHub' })
+  async portfolioReview(@CurrentUser() user: any, @Body() body: any) {
+    return this.aiService.portfolioReview(user.id, user.email, body);
+  }
 }

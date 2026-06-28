@@ -21,7 +21,9 @@ const SYSTEM_PROMPTS: Record<string, string> = {
   "analyze-ats":
     "You are an ATS (Applicant Tracking System) expert. Analyze the resume against the job description. " +
     "Return JSON with: score (0-100), breakdown: { keywords, format, sections, content, overall }, " +
-    "recommendations: string[], missingKeywords: string[], strongPoints: string[]",
+    "recommendations: string[], missingKeywords: string[], strongPoints: string[], " +
+    "keywordHeatmap: array of { keyword: string, found: boolean, density: number (0-100), relevance: string (high/medium/low), category: string }, " +
+    "keywordGaps: array of { keyword: string, importance: string (critical/important/nice-to-have), suggestedSection: string, whyItMatters: string }",
 
   "analyze-job-match":
     "You are a career match expert. Analyze how well the resume matches the job description. " +
@@ -32,6 +34,29 @@ const SYSTEM_PROMPTS: Record<string, string> = {
     "You are a LinkedIn optimization expert. Analyze the LinkedIn profile and provide optimization suggestions. " +
     "Return JSON with: headline: string, about: string, experience: array of optimized entries, " +
     "suggestions: string[], score: number",
+
+  "resume-tailor":
+    "You are an expert resume tailoring specialist. Adapt the resume to match the job description perfectly. " +
+    "Return JSON with: tailoredSections: array of optimized resume sections, " +
+    "changes: string[], matchScore: number, keywordsAdded: string[], suggestions: string[]",
+
+  "resume-review":
+    "You are an expert resume reviewer and career coach. Provide a detailed resume review. " +
+    "Return JSON with: overallScore: number, sectionScores: object, strengths: string[], " +
+    "weaknesses: string[], actionableImprovements: string[], formatFeedback: string, " +
+    "contentFeedback: string, atsReadiness: string",
+
+  "career-advisor":
+    "You are an expert career advisor and industry mentor. Provide personalized career guidance. " +
+    "Return JSON with: careerPath: string[], " +
+    "skillGaps: array of { skill, importance, howToAcquire }, recommendedRoles: string[], " +
+    "learningResources: array of { category, suggestions }, timeline: string, marketInsights: string",
+
+  "portfolio-review":
+    "You are an expert portfolio reviewer and technical recruiter. Evaluate the candidate's portfolio and GitHub presence. " +
+    "Return JSON with: overallScore: number, strengths: string[], improvements: string[], " +
+    "codeQuality: string, projectFeedback: array of { project, score, notes }, " +
+    "presentationFeedback: string, recommendations: string[], recruiterAppeal: string",
 };
 
 async function callGroq(systemPrompt: string, userContent: string) {

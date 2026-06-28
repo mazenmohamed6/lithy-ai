@@ -8,7 +8,7 @@ import { useSupabase } from "@/providers/supabase-provider";
 import { api } from "@/lib/api";
 import { formatDateRelative } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
-import { FileText, Sparkles, BarChart3, Target, Plus, ArrowRight, Loader2, TrendingUp, CheckCircle, Clock, Lightbulb, GraduationCap, Award, Zap, Medal, Star, Gift } from "lucide-react";
+import { FileText, Sparkles, BarChart3, Target, Plus, ArrowRight, Loader2, TrendingUp, CheckCircle, Clock, Lightbulb, GraduationCap, Award, Zap, Medal, Star, Gift, Wand2, FileCheck, Compass, Globe } from "lucide-react";
 
 const badges = [
   { id: "first-resume", label: "First Resume", icon: FileText, desc: "Created your first resume", condition: (c: number) => c >= 1 },
@@ -100,6 +100,10 @@ export default function DashboardPage() {
   const quickLinks = [
     { href: "/resumes/new?mode=ai", label: t("dashboard.createResumeAI"), icon: FileText },
     { href: "/ats-scanner", label: t("dashboard.analyzeATS"), icon: BarChart3 },
+    { href: "/resume-tailor", label: "Tailor Resume", icon: Wand2 },
+    { href: "/resume-review", label: "Resume Review", icon: FileCheck },
+    { href: "/career-advisor", label: "Career Advisor", icon: Compass },
+    { href: "/portfolio-review", label: "Portfolio Review", icon: Globe },
     { href: "/job-match", label: t("dashboard.checkJobMatch"), icon: Target },
     { href: "/cover-letters", label: t("dashboard.generateCoverLetter"), icon: FileText },
   ];

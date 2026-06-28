@@ -15,6 +15,20 @@ function getScoreColor(score: number): string {
   return "#ef4444";
 }
 
+function getHeatmapColor(density: number): string {
+  if (density >= 70) return "bg-green-500/20 border-green-500/30 text-green-700";
+  if (density >= 40) return "bg-yellow-500/20 border-yellow-500/30 text-yellow-700";
+  return "bg-red-500/20 border-red-500/30 text-red-700";
+}
+
+function DensityBar({ density }: { density: number }) {
+  return (
+    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${density}%`, backgroundColor: density >= 70 ? "#22c55e" : density >= 40 ? "#eab308" : "#ef4444" }} />
+    </div>
+  );
+}
+
 function getScoreLabel(score: number): string {
   if (score >= 80) return "Excellent";
   if (score >= 60) return "Good";
@@ -310,6 +324,62 @@ export default function ATSScannerPage() {
                       </li>
                     ))}
                   </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {result.keywordHeatmap?.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    {t("atsScanner.keywordHeatmap")}
+                  </CardTitle>
+                  <CardDescription>{t("atsScanner.keywordHeatmapDesc")}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {result.keywordHeatmap.map((kw: any, i: number) => (
+                      <div key={i} className={`flex items-center gap-3 p-2 rounded-lg border text-sm ${getHeatmapColor(kw.found ? kw.density : 0)}`}>
+                        <span className="w-2 h-2 rounded-full shrink-0 ${kw.found ? 'bg-green-500' : 'bg-red-500'}" />
+                        <span className="font-medium flex-1">{kw.keyword}</span>
+                        <span className="text-xs text-muted-foreground">{kw.category}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-background/80">{kw.relevance}</span>
+                        <div className="w-20">
+                          <DensityBar density={kw.found ? kw.density : 0} />
+                        </div>
+                        <span className="text-xs font-mono w-8 text-right">{kw.density}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {result.keywordGaps?.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+                    <AlertTriangle className="h-5 w-5" />
+                    {t("atsScanner.keywordGaps")}
+                  </CardTitle>
+                  <CardDescription>{t("atsScanner.keywordGapsDesc")}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {result.keywordGaps.map((gap: any, i: number) => (
+                    <div key={i} className="p-3 rounded-lg border border-red-500/10 bg-red-500/5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm">{gap.keyword}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          gap.importance === "critical" ? "bg-red-500/10 text-red-600" :
+                          gap.importance === "important" ? "bg-yellow-500/10 text-yellow-600" :
+                          "bg-blue-500/10 text-blue-600"
+                        }`}>{gap.importance}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-1">Suggested section: {gap.suggestedSection}</p>
+                      <p className="text-xs text-muted-foreground">{gap.whyItMatters}</p>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}

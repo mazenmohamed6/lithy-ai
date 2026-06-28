@@ -161,7 +161,9 @@ export class AiService {
             - breakdown: { keywords: number, format: number, sections: number, content: number, overall: number }
             - recommendations: string[]
             - missingKeywords: string[]
-            - strongPoints: string[]`,
+            - strongPoints: string[]
+            - keywordHeatmap: array of { keyword: string, found: boolean, density: number (0-100), relevance: string (high/medium/low), category: string }
+            - keywordGaps: array of { keyword: string, importance: string (critical/important/nice-to-have), suggestedSection: string, whyItMatters: string }`,
           },
           { role: 'user', content: JSON.stringify(data) },
         ],
@@ -327,6 +329,149 @@ Keep all content practical, concise, and interview-ready.`;
     }
   }
 
+  async resumeTailor(userId: string, userEmail: string, data: { resume: any; jobDescription: string; companyName?: string; tone?: string }) {
+    await this.ensureUserExists(userId, userEmail);
+    await this.checkUsageLimit(userId, 'RESUME_TAILOR');
+
+    try {
+      const completion = await this.ensureAi().chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert resume tailoring specialist. Adapt the resume to match the job description perfectly.
+            Return JSON with:
+            - tailoredSections: array of optimized resume sections
+            - changes: string[] (list of specific changes made)
+            - matchScore: number (0-100 how well the tailored resume matches the job)
+            - keywordsAdded: string[]
+            - suggestions: string[] (additional tips for the interview)`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'RESUME_TAILOR', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'RESUME_TAILOR', error.message);
+      throw new BadRequestException(error.message || 'AI resume tailoring failed');
+    }
+  }
+
+  async resumeReview(userId: string, userEmail: string, data: { resume: any; experienceLevel?: string; industry?: string }) {
+    await this.ensureUserExists(userId, userEmail);
+    await this.checkUsageLimit(userId, 'RESUME_REVIEW');
+
+    try {
+      const completion = await this.ensureAi().chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert resume reviewer and career coach. Provide a detailed resume review.
+            Return JSON with:
+            - overallScore: number (0-100)
+            - sectionScores: { [sectionName: string]: number }
+            - strengths: string[]
+            - weaknesses: string[]
+            - actionableImprovements: string[]
+            - formatFeedback: string
+            - contentFeedback: string
+            - atsReadiness: string`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'RESUME_REVIEW', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'RESUME_REVIEW', error.message);
+      throw new BadRequestException(error.message || 'AI resume review failed');
+    }
+  }
+
+  async careerAdvisor(userId: string, userEmail: string, data: { currentRole: string; targetRole: string; experience: string; skills: string[]; industry?: string }) {
+    await this.ensureUserExists(userId, userEmail);
+    await this.checkUsageLimit(userId, 'CAREER_ADVISOR');
+
+    try {
+      const completion = await this.ensureAi().chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert career advisor and industry mentor. Provide personalized career guidance.
+            Return JSON with:
+            - careerPath: string[] (recommended career progression steps)
+            - skillGaps: { skill: string; importance: string; howToAcquire: string }[]
+            - recommendedRoles: string[]
+            - learningResources: { category: string; suggestions: string[] }[]
+            - timeline: string (estimated timeline to reach target role)
+            - marketInsights: string (relevant industry trends and salary expectations)`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'CAREER_ADVISOR', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'CAREER_ADVISOR', error.message);
+      throw new BadRequestException(error.message || 'AI career advisory failed');
+    }
+  }
+
+  async portfolioReview(userId: string, userEmail: string, data: { githubUsername?: string; portfolioUrl?: string; description: string; role?: string }) {
+    await this.ensureUserExists(userId, userEmail);
+    await this.checkUsageLimit(userId, 'PORTFOLIO_REVIEW');
+
+    try {
+      const completion = await this.ensureAi().chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert portfolio reviewer and technical recruiter. Evaluate the candidate's portfolio and GitHub presence.
+            Return JSON with:
+            - overallScore: number (0-100)
+            - strengths: string[]
+            - improvements: string[]
+            - codeQuality?: string (if GitHub provided)
+            - projectFeedback: { project: string; score: number; notes: string }[]
+            - presentationFeedback: string
+            - recommendations: string[]
+            - recruiterAppeal: string (how attractive this portfolio is to recruiters)`,
+          },
+          { role: 'user', content: JSON.stringify(data) },
+        ],
+        response_format: { type: 'json_object' },
+      });
+
+      const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+      await this.recordUsage(userId, 'PORTFOLIO_REVIEW', completion.usage);
+
+      return result;
+    } catch (error: any) {
+      await this.recordFailure(userId, 'PORTFOLIO_REVIEW', error.message);
+      throw new BadRequestException(error.message || 'AI portfolio review failed');
+    }
+  }
+
   private async checkUsageLimit(userId: string, type: string) {
     const subscription = await this.prisma.userSubscription.findUnique({
       where: { userId },
@@ -350,6 +495,10 @@ Keep all content practical, concise, and interview-ready.`;
       JOB_MATCH: { key: 'jobMatches', isBool: false },
       LINKEDIN_OPTIMIZATION: { key: 'linkedinOptimizer', isBool: true },
       INTERVIEW_QUESTIONS: { key: 'aiGenerations', isBool: false },
+      RESUME_TAILOR: { key: 'aiGenerations', isBool: false },
+      RESUME_REVIEW: { key: 'aiGenerations', isBool: false },
+      CAREER_ADVISOR: { key: 'aiGenerations', isBool: false },
+      PORTFOLIO_REVIEW: { key: 'aiGenerations', isBool: false },
     };
 
     const feature = featureMap[type];
@@ -388,9 +537,10 @@ Keep all content practical, concise, and interview-ready.`;
 
     // Check identity ledger first (survives account deletion)
     const identityUsage = await this.antiAbuseService.getIdentityUsage(userId);
+    const aiGenTypes = ['RESUME_GENERATION', 'RESUME_IMPROVEMENT', 'COVER_LETTER', 'INTERVIEW_QUESTIONS', 'RESUME_TAILOR', 'RESUME_REVIEW', 'CAREER_ADVISOR', 'PORTFOLIO_REVIEW'];
     if (identityUsage.freePlanExhausted) {
       // Determine which feature type matches
-      if (type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER' || type === 'INTERVIEW_QUESTIONS') {
+      if (aiGenTypes.includes(type)) {
         if (identityUsage.ledgerTotalAiGenerations >= limit) {
           throw new BadRequestException(`Free plan benefits exhausted. Upgrade to access ${type}.`);
         }
@@ -404,7 +554,7 @@ Keep all content practical, concise, and interview-ready.`;
     }
 
     // Combine ledger usage (from deleted accounts) with current account usage
-    const ledgerTotal = type === 'RESUME_GENERATION' || type === 'RESUME_IMPROVEMENT' || type === 'COVER_LETTER' || type === 'INTERVIEW_QUESTIONS'
+    const ledgerTotal = aiGenTypes.includes(type)
       ? identityUsage.ledgerTotalAiGenerations
       : type === 'ATS_SCAN' || type === 'JOB_MATCH'
         ? identityUsage.ledgerTotalAtsScans

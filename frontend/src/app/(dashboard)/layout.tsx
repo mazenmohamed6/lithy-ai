@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Sparkles, BarChart3, Target, Linkedin, CreditCard, Settings, LayoutDashboard, Menu, X, HelpCircle } from "lucide-react";
+import { FileText, Sparkles, BarChart3, Target, Linkedin, CreditCard, Settings, LayoutDashboard, Menu, X, HelpCircle, Wand2, FileCheck, Compass, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +14,10 @@ const sidebarLinks = [
   { href: "/job-match", label: "Job Match", icon: Target },
   { href: "/cover-letters", label: "Cover Letters", icon: Sparkles },
   { href: "/interview-questions", label: "Interview Questions", icon: HelpCircle },
+  { href: "/resume-tailor", label: "Resume Tailor", icon: Wand2 },
+  { href: "/resume-review", label: "Resume Review", icon: FileCheck },
+  { href: "/career-advisor", label: "Career Advisor", icon: Compass },
+  { href: "/portfolio-review", label: "Portfolio Review", icon: Globe },
   { href: "/linkedin", label: "LinkedIn", icon: Linkedin },
   { href: "/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings },
