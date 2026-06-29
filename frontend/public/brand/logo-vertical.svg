@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+  <defs>
+    <linearGradient id="brandGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="aiGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(10, 10)">
+    <rect x="30" y="26" width="16" height="54" rx="8" fill="#0F172A"/>
+    <path d="M46 71 L82 35" stroke="url(#brandGrad)" stroke-width="16" stroke-linecap="round" fill="none"/>
+    <circle cx="46" cy="71" r="6.5" fill="#06B6D4"/>
+  </g>
+
+  <g transform="translate(10, 100)">
+    <text x="50" y="0" font-family="system-ui, -apple-system, 'Inter', 'Segoe UI', sans-serif" font-size="28" font-weight="700" fill="#0F172A" letter-spacing="-0.02em" text-anchor="middle">LITHY</text>
+    <text x="50" y="34" font-family="system-ui, -apple-system, 'Inter', 'Segoe UI', sans-serif" font-size="28" font-weight="300" fill="url(#aiGrad)" letter-spacing="0.06em" text-anchor="middle">AI</text>
+  </g>
+</svg>

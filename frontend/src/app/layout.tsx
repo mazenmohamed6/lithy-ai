@@ -54,17 +54,26 @@ export const metadata: Metadata = {
   title: "LITHY AI - AI-Powered Resume Builder for Egypt & MENA",
   description: "Create professional, ATS-optimized resumes and cover letters with AI. Built for Egyptian and MENA job seekers. Arabic & English support.",
   keywords: "AI Resume Builder, ATS Resume Checker, Resume Generator, سيرة ذاتية بالذكاء الاصطناعي, فحص ATS, منشئ السيرة الذاتية, Egypt, MENA",
+  icons: {
+    icon: [
+      { url: "/brand/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: { url: "/brand/app-icon.svg", type: "image/svg+xml" },
+  },
   openGraph: {
     title: "LITHY AI - AI-Powered Resume Builder",
     description: "Create professional resumes with AI. Get ATS-optimized, job-winning resumes in minutes. Built for Egypt & MENA.",
     type: "website",
     locale: "en_US",
     siteName: "LITHY AI",
+    images: [{ url: "/brand/logo.svg", width: 280, height: 100, alt: "LITHY AI" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "LITHY AI - AI Resume Builder",
     description: "Build ATS-optimized resumes with AI. Arabic & English support. Built for Egypt & MENA.",
+    images: ["/brand/logo.svg"],
   },
   robots: { index: true, follow: true },
   alternates: {

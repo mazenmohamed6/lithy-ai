@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/context";
+import { Logo } from "@/components/brand/logo";
 
 export function Footer() {
   const { t, locale } = useI18n();
@@ -14,9 +15,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="size-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs">L</span>
-              </div>
+              <Logo variant="icon" width={28} height={28} />
               <span className="text-base font-bold">{APP_NAME}</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">

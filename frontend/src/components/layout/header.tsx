@@ -9,6 +9,7 @@ import { useSupabase } from "@/providers/supabase-provider";
 import { APP_NAME } from "@/lib/constants";
 import { useI18n, type Locale } from "@/lib/i18n/context";
 import { Menu, X, Globe, LogOut, User } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 
 export function Header() {
   const pathname = usePathname();
@@ -56,9 +57,7 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">L</span>
-            </div>
+            <Logo variant="icon" width={32} height={32} />
             <span className="text-lg font-bold tracking-tight">{APP_NAME}</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
