@@ -28,9 +28,9 @@ export function Footer() {
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><Link href="/features" className="hover:text-foreground transition-colors">{t("nav.features")}</Link></li>
               <li><Link href="/pricing" className="hover:text-foreground transition-colors">{t("nav.pricing")}</Link></li>
-              <li><Link href="/templates" className="hover:text-foreground transition-colors">Templates</Link></li>
+              <li><Link href="/templates" className="hover:text-foreground transition-colors">{t("footer.templates")}</Link></li>
               <li><Link href="/referral" className="hover:text-foreground transition-colors">{t("auth.referral")}</Link></li>
-              <li><Link href="/changelog" className="hover:text-foreground transition-colors">Changelog</Link></li>
+              <li><Link href="/changelog" className="hover:text-foreground transition-colors">{t("footer.changelog")}</Link></li>
             </ul>
           </div>
           <div>
@@ -38,21 +38,21 @@ export function Footer() {
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li><Link href="/about" className="hover:text-foreground transition-colors">{t("nav.about")}</Link></li>
               <li><Link href="/blog" className="hover:text-foreground transition-colors">{t("nav.blog")}</Link></li>
-              <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+              <li><Link href="/contact" className="hover:text-foreground transition-colors">{t("footer.contact")}</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-semibold text-sm mb-4">{t("footer.legal")}</h4>
             <ul className="space-y-2.5 text-sm text-muted-foreground">
-              <li><Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link></li>
-              <li><Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link></li>
-              <li><Link href="/cookies" className="hover:text-foreground transition-colors">Cookies</Link></li>
+              <li><Link href="/privacy" className="hover:text-foreground transition-colors">{t("footer.privacy")}</Link></li>
+              <li><Link href="/terms" className="hover:text-foreground transition-colors">{t("footer.terms")}</Link></li>
+              <li><Link href="/cookies" className="hover:text-foreground transition-colors">{t("footer.cookies")}</Link></li>
             </ul>
           </div>
         </div>
         <div className="border-t mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>&copy; {year} {APP_NAME}. {t("footer.copyright")}</p>
-          <p className="text-xs">{locale === "ar" ? "صنع في مصر " : "Made in Egypt"}</p>
+          <p className="text-xs">{t("footer.madeInEgypt")}</p>
         </div>
       </div>
     </footer>

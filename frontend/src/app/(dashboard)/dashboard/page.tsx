@@ -10,20 +10,20 @@ import { formatDateRelative } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/context";
 import { FileText, Sparkles, BarChart3, Target, Plus, ArrowRight, Loader2, TrendingUp, CheckCircle, Clock, Lightbulb, GraduationCap, Award, Zap, Medal, Star, Gift, Wand2, FileCheck, Compass, Globe } from "lucide-react";
 
-const badges = [
-  { id: "first-resume", label: "First Resume", icon: FileText, desc: "Created your first resume", condition: (c: number) => c >= 1 },
-  { id: "resume-5", label: "Resume Collector", icon: Award, desc: "Created 5 resumes", condition: (c: number) => c >= 5 },
-  { id: "ats-scanner", label: "ATS Pro", icon: BarChart3, desc: "Scanned 3+ resumes", condition: (_: number, s: number) => s >= 3 },
-  { id: "ai-master", label: "AI Master", icon: Sparkles, desc: "Used AI generation 10+ times", condition: (_: number, __: number, a: number) => a >= 10 },
-  { id: "streak-7", label: "Week Warrior", icon: Medal, desc: "Active for 7 days", condition: () => false },
-  { id: "cover-letter", label: "Cover Letter Pro", icon: FileText, desc: "Generated a cover letter", condition: () => false },
+const badgeDefs = [
+  { id: "first-resume", tKey: "dashboard.badges.firstResume", icon: FileText, condition: (c: number) => c >= 1 },
+  { id: "resume-5", tKey: "dashboard.badges.resume5", icon: Award, condition: (c: number) => c >= 5 },
+  { id: "ats-scanner", tKey: "dashboard.badges.atsScanner", icon: BarChart3, condition: (_: number, s: number) => s >= 3 },
+  { id: "ai-master", tKey: "dashboard.badges.aiMaster", icon: Sparkles, condition: (_: number, __: number, a: number) => a >= 10 },
+  { id: "streak-7", tKey: "dashboard.badges.streak7", icon: Medal, condition: () => false },
+  { id: "cover-letter", tKey: "dashboard.badges.coverLetter", icon: FileText, condition: () => false },
 ];
 
-const weeklyGoals = [
-  { id: "create-1", label: "Create a resume", icon: FileText, key: "resumeCreated" as const },
-  { id: "scan-ats", label: "Scan ATS score", icon: BarChart3, key: "atsScanned" as const },
-  { id: "generate-ai", label: "Generate with AI", icon: Sparkles, key: "aiGenerated" as const },
-  { id: "match-job", label: "Check job match", icon: Target, key: "jobMatchChecked" as const },
+const weeklyGoalDefs = [
+  { id: "create-1", tKey: "dashboard.goals.createResume", icon: FileText, key: "resumeCreated" as const },
+  { id: "scan-ats", tKey: "dashboard.goals.scanAts", icon: BarChart3, key: "atsScanned" as const },
+  { id: "generate-ai", tKey: "dashboard.goals.generateAi", icon: Sparkles, key: "aiGenerated" as const },
+  { id: "match-job", tKey: "dashboard.goals.matchJob", icon: Target, key: "jobMatchChecked" as const },
 ];
 
 export default function DashboardPage() {
@@ -94,22 +94,22 @@ export default function DashboardPage() {
     t("dashboard.coach.tip3"),
   ];
 
-  const earnedBadges = badges.filter((b) => b.condition(resumeCount, atsScans, aiGenerations));
-  const lockedBadges = badges.filter((b) => !b.condition(resumeCount, atsScans, aiGenerations));
+  const earnedBadges = badgeDefs.filter((b) => b.condition(resumeCount, atsScans, aiGenerations));
+  const lockedBadges = badgeDefs.filter((b) => !b.condition(resumeCount, atsScans, aiGenerations));
 
   const quickLinks = [
     { href: "/resumes/new?mode=ai", label: t("dashboard.createResumeAI"), icon: FileText },
     { href: "/ats-scanner", label: t("dashboard.analyzeATS"), icon: BarChart3 },
-    { href: "/resume-tailor", label: "Tailor Resume", icon: Wand2 },
-    { href: "/resume-review", label: "Resume Review", icon: FileCheck },
-    { href: "/career-advisor", label: "Career Advisor", icon: Compass },
-    { href: "/portfolio-review", label: "Portfolio Review", icon: Globe },
+    { href: "/resume-tailor", label: t("dashboard.tailorResume"), icon: Wand2 },
+    { href: "/resume-review", label: t("dashboard.resumeReview"), icon: FileCheck },
+    { href: "/career-advisor", label: t("dashboard.careerAdvisor"), icon: Compass },
+    { href: "/portfolio-review", label: t("dashboard.portfolioReview"), icon: Globe },
     { href: "/job-match", label: t("dashboard.checkJobMatch"), icon: Target },
     { href: "/cover-letters", label: t("dashboard.generateCoverLetter"), icon: FileText },
   ];
 
   const completedGoals = Object.values(weeklyProgress).filter(Boolean).length;
-  const totalGoals = weeklyGoals.length;
+  const totalGoals = weeklyGoalDefs.length;
 
   return (
     <div className={`container py-8 space-y-8 animate-fade-in ${locale === "ar" ? "text-right" : ""}`}>
@@ -130,13 +130,13 @@ export default function DashboardPage() {
         <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-xl p-4 flex items-start gap-3">
           <Clock className="h-5 w-5 text-orange-500 mt-0.5 shrink-0" />
           <div>
-            <p className="font-semibold text-orange-800 dark:text-orange-300">Free plan benefits exhausted</p>
+            <p className="font-semibold text-orange-800 dark:text-orange-300">{t("dashboard.freePlanExhaustedTitle")}</p>
             <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
-              You've already used your free-plan credits across previous accounts. Upgrade to a paid plan to continue using AI features.
+              {t("dashboard.freePlanExhaustedDesc")}
             </p>
           </div>
           <Link href="/billing" className="shrink-0 ml-auto">
-            <Button size="sm" variant="default" className="bg-orange-600 hover:bg-orange-700">Upgrade</Button>
+            <Button size="sm" variant="default" className="bg-orange-600 hover:bg-orange-700">{t("dashboard.upgrade")}</Button>
           </Link>
         </div>
       )}
@@ -145,9 +145,9 @@ export default function DashboardPage() {
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start gap-3">
           <Clock className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
           <div>
-            <p className="font-semibold text-blue-800 dark:text-blue-300">Consolidated Usage Tracking</p>
+            <p className="font-semibold text-blue-800 dark:text-blue-300">{t("dashboard.consolidatedTitle")}</p>
             <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-              Your account is linked to a previous identity. <strong>{usage.totalAiGenerations} AI generations</strong> and <strong>{usage.totalAtsScans} ATS scans</strong> have been used across all your accounts.
+              {t("dashboard.consolidatedDesc")} <strong>{usage.totalAiGenerations} AI generations</strong> and <strong>{usage.totalAtsScans} ATS scans</strong> have been used across all your accounts.
             </p>
           </div>
         </div>
@@ -156,10 +156,10 @@ export default function DashboardPage() {
       {usage && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: t("dashboard.resumeCompletion"), value: `${completionScore}%`, icon: CheckCircle, color: "text-green-500", desc: `${resumeCount} resume${resumeCount !== 1 ? "s" : ""} created` },
-            { label: t("dashboard.atsImprovement"), value: `${atsImprovement}%`, icon: TrendingUp, color: "text-blue-500", desc: `${atsScans} scan${atsScans !== 1 ? "s" : ""} performed` },
-            { label: t("dashboard.aiUsage"), value: `${aiGenerations}`, icon: Sparkles, color: "text-purple-500", desc: "this month" },
-            { label: t("dashboard.subscription"), value: usage.plan || "Free", icon: GraduationCap, color: "text-orange-500", desc: usage.plan === "FREE" ? "Upgrade for more" : "Active" },
+            { label: t("dashboard.resumeCompletion"), value: `${completionScore}%`, icon: CheckCircle, color: "text-green-500", desc: locale === "ar" ? `تم إنشاء ${resumeCount}` : `${resumeCount} created` },
+            { label: t("dashboard.atsImprovement"), value: `${atsImprovement}%`, icon: TrendingUp, color: "text-blue-500", desc: locale === "ar" ? `تم الفحص ${atsScans}` : `${atsScans} scanned` },
+            { label: t("dashboard.aiUsage"), value: `${aiGenerations}`, icon: Sparkles, color: "text-purple-500", desc: t("dashboard.thisMonth") },
+            { label: t("dashboard.subscription"), value: usage.plan === "FREE" ? t("dashboard.statusFree") : (usage.plan || t("dashboard.statusFree")), icon: GraduationCap, color: "text-orange-500", desc: usage.plan === "FREE" ? t("dashboard.statusUpgrade") : t("dashboard.statusActive") },
           ].map((item) => {
             const Icon = item.icon;
             return (
@@ -191,12 +191,12 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="size-4" />
-              {locale === "ar" ? "أهداف الأسبوع" : "Weekly Goals"}
+              {t("dashboard.weeklyGoals")}
               <span className="text-xs text-muted-foreground font-normal ml-auto">{completedGoals}/{totalGoals}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {weeklyGoals.map((goal) => {
+            {weeklyGoalDefs.map((goal) => {
               const GoalIcon = goal.icon;
               const done = weeklyProgress[goal.id];
               return (
@@ -213,7 +213,7 @@ export default function DashboardPage() {
                     {done && <CheckCircle className="size-4 text-white" />}
                   </div>
                   <GoalIcon className={`size-4 shrink-0 ${done ? "text-green-500" : "text-muted-foreground"}`} />
-                  <span className={`text-sm ${done ? "line-through text-muted-foreground" : ""}`}>{goal.label}</span>
+                  <span className={`text-sm ${done ? "line-through text-muted-foreground" : ""}`}>{t(goal.tKey)}</span>
                 </button>
               );
             })}
@@ -224,8 +224,8 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Award className="size-4" />
-              {locale === "ar" ? "الإنجازات" : "Achievements"}
-              <span className="text-xs text-muted-foreground font-normal ml-auto">{earnedBadges.length}/{badges.length}</span>
+              {t("dashboard.achievements")}
+              <span className="text-xs text-muted-foreground font-normal ml-auto">{earnedBadges.length}/{badgeDefs.length}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                 return (
                   <div key={badge.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
                     <BadgeIcon className="size-4 text-primary" />
-                    <span className="text-xs font-medium">{badge.label}</span>
+                    <span className="text-xs font-medium">{t(`${badge.tKey}.label`)}</span>
                   </div>
                 );
               })}
@@ -244,17 +244,17 @@ export default function DashboardPage() {
                 return (
                   <div key={badge.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-dashed opacity-50">
                     <BadgeIcon className="size-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{badge.label}</span>
+                    <span className="text-xs text-muted-foreground">{t(`${badge.tKey}.label`)}</span>
                   </div>
                 );
               })}
-              {badges.length === 0 && (
-                <p className="text-sm text-muted-foreground">{locale === "ar" ? "أنشئ سيرتك الذاتية الأولى لفتح الإنجازات" : "Create your first resume to unlock achievements"}</p>
+              {badgeDefs.length === 0 && (
+                <p className="text-sm text-muted-foreground">{t("dashboard.createFirstResume")}</p>
               )}
             </div>
             {lockedBadges.length > 0 && (
               <p className="text-xs text-muted-foreground mt-3">
-                {locale === "ar" ? `الهدف التالي: ${lockedBadges[0].desc}` : `Next milestone: ${lockedBadges[0].desc}`}
+                {t("dashboard.nextMilestone")}: {t(`${lockedBadges[0].tKey}.desc`)}
               </p>
             )}
           </CardContent>
@@ -300,7 +300,7 @@ export default function DashboardPage() {
                 ))}
                 {resumes.length > 5 && (
                   <Link href="/resumes" className="block text-center text-sm text-primary pt-2 hover:underline">
-                    {locale === "ar" ? `عرض الكل (${resumes.length})` : `View all (${resumes.length})`}
+                    {t("dashboard.viewAll")} ({resumes.length})
                   </Link>
                 )}
               </div>

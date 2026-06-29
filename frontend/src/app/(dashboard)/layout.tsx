@@ -6,26 +6,28 @@ import { usePathname } from "next/navigation";
 import { FileText, Sparkles, BarChart3, Target, Linkedin, CreditCard, Settings, LayoutDashboard, Menu, X, HelpCircle, Wand2, FileCheck, Compass, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/context";
 
-const sidebarLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/resumes", label: "Resumes", icon: FileText },
-  { href: "/ats-scanner", label: "ATS Scanner", icon: BarChart3 },
-  { href: "/job-match", label: "Job Match", icon: Target },
-  { href: "/cover-letters", label: "Cover Letters", icon: Sparkles },
-  { href: "/interview-questions", label: "Interview Questions", icon: HelpCircle },
-  { href: "/resume-tailor", label: "Resume Tailor", icon: Wand2 },
-  { href: "/resume-review", label: "Resume Review", icon: FileCheck },
-  { href: "/career-advisor", label: "Career Advisor", icon: Compass },
-  { href: "/portfolio-review", label: "Portfolio Review", icon: Globe },
-  { href: "/linkedin", label: "LinkedIn", icon: Linkedin },
-  { href: "/billing", label: "Billing", icon: CreditCard },
-  { href: "/settings", label: "Settings", icon: Settings },
+const sidebarLinkDefs = [
+  { href: "/dashboard", key: "sidebar.dashboard", icon: LayoutDashboard },
+  { href: "/resumes", key: "sidebar.resumes", icon: FileText },
+  { href: "/ats-scanner", key: "sidebar.atsScanner", icon: BarChart3 },
+  { href: "/job-match", key: "sidebar.jobMatch", icon: Target },
+  { href: "/cover-letters", key: "sidebar.coverLetters", icon: Sparkles },
+  { href: "/interview-questions", key: "sidebar.interviewQuestions", icon: HelpCircle },
+  { href: "/resume-tailor", key: "sidebar.resumeTailor", icon: Wand2 },
+  { href: "/resume-review", key: "sidebar.resumeReview", icon: FileCheck },
+  { href: "/career-advisor", key: "sidebar.careerAdvisor", icon: Compass },
+  { href: "/portfolio-review", key: "sidebar.portfolioReview", icon: Globe },
+  { href: "/linkedin", key: "sidebar.linkedin", icon: Linkedin },
+  { href: "/billing", key: "sidebar.billing", icon: CreditCard },
+  { href: "/settings", key: "sidebar.settings", icon: Settings },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { t } = useI18n();
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
@@ -34,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         size="icon"
         className="fixed top-20 left-3 z-50 md:hidden"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label="Toggle navigation"
+        aria-label={t("header.toggleNavigation")}
       >
         {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
@@ -51,13 +53,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       )}>
         <div className="p-4 border-b flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Navigation</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("sidebar.navigation")}</p>
           <Button variant="ghost" size="icon" className="md:hidden h-6 w-6" onClick={() => setSidebarOpen(false)}>
             <X className="h-4 w-4" />
           </Button>
         </div>
         <nav className="flex flex-col gap-1 p-3 flex-1">
-          {sidebarLinks.map((link) => {
+          {sidebarLinkDefs.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
             return (
@@ -73,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {link.label}
+                {t(link.key)}
               </Link>
             );
           })}

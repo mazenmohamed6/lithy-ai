@@ -76,6 +76,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `(function(){try{var l=localStorage.getItem("locale");if(l==="ar"){document.documentElement.lang="ar";document.documentElement.dir="rtl"}}catch(e){}})();`
+        }} />
         <link rel="preconnect" href="https://pobeisftgpkbgpnspser.supabase.co" />
         <link rel="dns-prefetch" href="https://pobeisftgpkbgpnspser.supabase.co" />
         <script

@@ -32,14 +32,14 @@ export function Header() {
 
   const navLinks = isDashboard
     ? [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/ats-scanner", label: "ATS Scanner" },
-        { href: "/cover-letters", label: "Cover Letters" },
-        { href: "/blog", label: "Blog" },
+        { href: "/dashboard", label: t("header.dashboard") },
+        { href: "/ats-scanner", label: t("header.atsScanner") },
+        { href: "/cover-letters", label: t("header.coverLetters") },
+        { href: "/blog", label: t("header.blog") },
       ]
     : [
         { href: "/features", label: t("nav.features") },
-        { href: "/resume-templates", label: "Templates" },
+        { href: "/resume-templates", label: t("header.templates") },
         { href: "/pricing", label: t("nav.pricing") },
         { href: "/blog", label: t("nav.blog") },
         { href: "/about", label: t("nav.about") },
@@ -106,14 +106,14 @@ export function Header() {
                 {menuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border bg-background shadow-lg py-1 z-50">
                     <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors">
-                      <User className="size-4" /> Dashboard
+                      <User className="size-4" /> {t("header.dashboard")}
                     </Link>
                     <Link href="/settings" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors">
-                      Settings
+                      {t("header.settings")}
                     </Link>
                     <hr className="my-1" />
                     <button onClick={() => { setMenuOpen(false); signOut(); }} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-accent transition-colors w-full text-left">
-                      <LogOut className="size-4" /> Sign Out
+                      <LogOut className="size-4" /> {t("header.signOut")}
                     </button>
                   </div>
                 )}
@@ -136,7 +136,7 @@ export function Header() {
           <button
             className="md:hidden p-2 -mr-2"
             onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
+            aria-label={t("header.toggleMenu")}
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>

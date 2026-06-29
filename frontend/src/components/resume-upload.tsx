@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n/context";
 
 interface ResumeUploadProps {
   onResumeText: (text: string) => void;
@@ -11,6 +12,7 @@ interface ResumeUploadProps {
 }
 
 export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadProps) {
+  const { t, locale } = useI18n();
   const [text, setText] = useState(initialText);
   const [fileName, setFileName] = useState("");
   const [isParsing, setIsParsing] = useState(false);
@@ -18,11 +20,11 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
 
   const handleFile = async (file: File) => {
     if (!file.name.match(/\.(pdf|docx|doc|txt)$/i)) {
-      toast.error("Only PDF, DOCX, DOC, and TXT files are supported");
+      toast.error(locale === "ar" ? "يتم دعم ملفات PDF, DOCX, DOC, TXT فقط" : "Only PDF, DOCX, DOC, and TXT files are supported");
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      toast.error("File is too large. Maximum size is 20MB.");
+      toast.error(locale === "ar" ? "الملف كبير جداً. الحد الأقصى ٢٠ ميجابايت." : "File is too large. Maximum size is 20MB.");
       return;
     }
 
@@ -44,10 +46,10 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
       }
     } catch (err: any) {
       const details = err?.status ? ` (HTTP ${err.status})` : "";
-      const msg = err.message || "Could not read file";
+      const msg = err.message || (locale === "ar" ? "تعذر قراءة الملف" : "Could not read file");
       toast.error(`${msg}${details}`);
-      setText(`[Could not extract text from ${file.name}. ${msg}${details}. Please paste content manually.]`);
-      onResumeText(`[Could not extract text from ${file.name}. ${msg}${details}. Please paste content manually.]`);
+      setText(locale === "ar" ? `[تعذر استخراج النص من ${file.name}. ${msg}${details}. يرجى لصق المحتوى يدوياً.]` : `[Could not extract text from ${file.name}. ${msg}${details}. Please paste content manually.]`);
+      onResumeText(locale === "ar" ? `[تعذر استخراج النص من ${file.name}. ${msg}${details}. يرجى لصق المحتوى يدوياً.]` : `[Could not extract text from ${file.name}. ${msg}${details}. Please paste content manually.]`);
     } finally {
       setIsParsing(false);
     }
@@ -76,7 +78,7 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
           className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-muted-foreground/40 text-sm text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
         >
           <Upload className="h-4 w-4" />
-          {fileName ? "Change file" : "Upload resume file"}
+          {fileName ? (locale === "ar" ? "تغيير الملف" : "Change file") : (locale === "ar" ? "رفع ملف السيرة الذاتية" : "Upload resume file")}
         </button>
         {fileName && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
@@ -94,7 +96,7 @@ export function ResumeUpload({ onResumeText, initialText = "" }: ResumeUploadPro
         className="w-full min-h-[160px] rounded-lg border border-input bg-transparent p-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
         value={text}
         onChange={(e) => { setText(e.target.value); onResumeText(e.target.value); }}
-        placeholder={fileName ? "Edit extracted text..." : "Paste your resume content here, or upload a file above..."}
+        placeholder={fileName ? (locale === "ar" ? "تعديل النص المستخرج..." : "Edit extracted text...") : (locale === "ar" ? "الصق محتوى سيرتك الذاتية هنا، أو ارفع ملفاً أعلاه..." : "Paste your resume content here, or upload a file above...")}
       />
     </div>
   );
